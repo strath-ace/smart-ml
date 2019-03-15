@@ -10,6 +10,6 @@ This script is also heavily influced by code avaialbe here:
 
 http://www.topopt.mek.dtu.dk/Apps-and-software/Topology-optimization-codes-written-in-Python
 
-CMA-ES is used to update the weights and baises of a fixed topology neural network. DEAP is used for the implementation of CMA-ES
+CMA-ES is used to update the weights and baises of a fixed topology neural network. DEAP is used for the implementation of CMA-ES.
 
 This takes a few hours to solve.
