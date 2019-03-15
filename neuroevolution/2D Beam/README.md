@@ -1,3 +1,5 @@
+![](GIF.gif)
+
 Neuroevolution of 2D beam.
 
 This script runs a topology optimisation of a 2D beam structure. A neural network is used to approximate update sensitivities for an OC update. 
@@ -13,6 +15,3 @@ http://www.topopt.mek.dtu.dk/Apps-and-software/Topology-optimization-codes-writt
 CMA-ES is used to update the weights and baises of a fixed topology neural network. DEAP is used for the implementation of CMA-ES.
 
 This takes a few hours to solve.
-
-GIF of the optimisation:
-![](GIF.gif)
