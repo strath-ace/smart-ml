@@ -1,0 +1,5 @@
+# Save by pqb18127 on 2019_05_09-12.28.33; build 2019 2018_09_24-19.41.51 157541
+from abaqus import *
+upgradeMdb('D:/tempPython/Final/original/cantilever-2018.cae', 
+    'D:/tempPython/Final/original/cantilever.cae')
+# Save by pqb18127 on 2019_05_09-12.28.33; build 2019 2018_09_24-19.41.51 157541
