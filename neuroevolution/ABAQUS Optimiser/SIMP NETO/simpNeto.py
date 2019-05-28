@@ -7,7 +7,7 @@ This runs the full inner loop of NETO. Some fine tuning needs to be done to ensu
 This has been modified to stop the previous network from being used as the starting point for the next iteration. 
 
 @author: John Hutcheson
-"""
+""" 
 
 import multiprocessing 
 from deap import tools, creator, base, cma, algorithms
