@@ -1,3 +1,10 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+# ------ Copyright (C) 2018 University of Strathclyde and Author ------
+# ---------------------- Author: Callum Wilson ------------------------
+# --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
+
 import numpy as np
 import pickle
 from tabulate import tabulate
@@ -17,7 +24,7 @@ def sort_loss(val):
 	return val[1]
 
 
-fname = 'paramopt_data/opt_acrobot_qnet_area.p'
+fname = 'opt_acrobot_gammar_12_6.p'
 print('Loading trials...')
 trials = pickle.load(open(fname,'rb'))
 

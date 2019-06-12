@@ -1,6 +1,13 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+# ------ Copyright (C) 2018 University of Strathclyde and Author ------
+# ---------------------- Author: Callum Wilson ------------------------
+# --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
+
 import numpy as np
 from eqlm_agent import EQLMAgent
-from qnet_agent import DoubleQNet
+from qnet_agent import QNetAgent
 from environment import Environment
 from multiprocessing import Pool, cpu_count
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
@@ -15,20 +22,20 @@ import time
 def network_config():
 	netcon = {}
 	netcon['alpha'] = 0.01
-	netcon['gamma_reg'] = 0.0621
+	netcon['gamma_reg'] = 0.03
 	netcon['clip_norm'] = 1.0
 	netcon['update_steps'] = 15
-	netcon['N_hid'] = 11
+	netcon['N_hid'] = 22
 	return netcon
 
 
 def agent_config():
 	agentcon = {}
-	agentcon['gamma'] = 0.5
-	agentcon['eps0'] = 0.782
+	agentcon['gamma'] = 0.95
+	agentcon['eps0'] = 0.88
 	agentcon['epsf'] = 0.0
-	agentcon['n_eps'] = 410
-	agentcon['minib'] = 6
+	agentcon['n_eps'] = 1400
+	agentcon['minib'] = 20
 	agentcon['max_mem'] = 10000
 	agentcon['max_exp'] = 500
 	return agentcon
@@ -38,19 +45,21 @@ def opt_function(hyper_params):
 	# [update_steps, N_hid, gamma, eps0]
 
 	n_process = cpu_count()
-	n_run = 10
+	n_run = 8
 	if __name__ == '__main__':
 		p = Pool(processes=n_process, initializer=init_configs, initargs=hyper_params)
 		R_ep_runs = p.map_async(do_run_acro, range(n_run))
 
-	print('Current params:' +
-		  '\nupdate_steps ' + repr(hyper_params[0].__trunc__()) +
-		  '\nN_hid ' + repr(hyper_params[1].__trunc__()) +
-		  '\ngamma ' + repr(round(hyper_params[2], 3)) +
-		  '\neps0 ' + repr(round(hyper_params[3], 3)))
+	# print('Current params:' +
+	# 	  '\nupdate_steps ' + repr(hyper_params[0].__trunc__()) +
+	# 	  '\nN_hid ' + repr(hyper_params[1].__trunc__()) +
+	# 	  '\ngamma ' + repr(round(hyper_params[2], 3)) +
+	# 	  '\neps0 ' + repr(round(hyper_params[3], 3)))
+
+	print('Current gamma_reg:' + repr(hyper_params[0]))
 
 	R_runs = R_ep_runs.get()
-	regret_runs = [np.trapz(R_run) for R_run in R_runs]
+	regret_runs = [-np.trapz(R_run) for R_run in R_runs]
 	regret_bs = bs.bootstrap(np.array(regret_runs), stat_func=bs_stats.mean)
 	low_regret = regret_bs.lower_bound
 	print('Loss: ' + repr(low_regret))
@@ -80,16 +89,23 @@ def run_trials(filename, space):
 	pickle.dump(trials, open(filename, "wb"))
 
 
-def init_configs(update_steps, N_hid, gamma, eps0):
-	# [update_steps, N_hid, gamma, eps0]
-	global netcon, agentcon
-	netcon = NetworkConfig()
-	agentcon = AgentConfig()
+# def init_configs(update_steps, N_hid, gamma, eps0):
+# 	# [update_steps, N_hid, gamma, eps0]
+# 	global netcon, agentcon
+# 	netcon = network_config()
+# 	agentcon = agent_config()
 
-	netcon['update_steps'] = int(update_steps)
-	netcon['N_hid'] = int(N_hid)
-	agentcon['gamma'] = gamma
-	agentcon['eps0'] = eps0
+# 	netcon['update_steps'] = int(update_steps)
+# 	netcon['N_hid'] = int(N_hid)
+# 	agentcon['gamma'] = gamma
+# 	agentcon['eps0'] = eps0
+
+def init_configs(gamma_reg):
+	global netcon, agentcon
+	netcon = network_config()
+	agentcon = agent_config()
+
+	netcon['gamma_reg'] = gamma_reg
 
 
 def do_run_acro(run_no):
@@ -111,18 +127,19 @@ def do_run_acro(run_no):
 		R_ep.append(r)
 	agent.sess.close()
 
-	print('Run {} mean value {}'.format(run_no, np.mean(R_ep[-100:])))
+	# print('Run {} mean value {}'.format(run_no, np.mean(R_ep[-100:])))
 	return R_ep
 
 
 # # [update_steps, N_hid, gamma, eps0]
 
 gc.enable()
-space = [hp.quniform('update_steps', 10, 40, 1),
-		 hp.quniform('N_hid', 20, 30, 1),
-		 hp.uniform('gamma', 0.8, 1.0),
-		 hp.uniform('eps0', 0.8, 1.0)]
+# space = [hp.quniform('update_steps', 10, 40, 1),
+# 		 hp.quniform('N_hid', 20, 30, 1),
+# 		 hp.uniform('gamma', 0.8, 1.0),
+# 		 hp.uniform('eps0', 0.8, 1.0)]
+space = [hp.loguniform('gamma_reg', -4.6, -1.6)]
 
-filename = 'opt_acrobot_eqlm_area.p'
+filename = 'opt_acrobot_gammar_12_6.p'
 while True:
 	run_trials(filename, space)
