@@ -17,13 +17,11 @@ def sort_loss(val):
 	return val[1]
 
 
-fname = 'opt_acrobot_qnet_area.p'
+fname = 'paramopt_data/opt_acrobot_qnet_area.p'
 print('Loading trials...')
 trials = pickle.load(open(fname,'rb'))
 
 print('N trials: ' + repr(len(trials.trials)))
-
-pdb.set_trace()
 
 tab_data = [[i, trials.losses()[i], trials.trials[i]['result']['loss_runs']] for i in range(len(trials.trials))]
 tab_data.sort(key = sort_loss, reverse = True)
