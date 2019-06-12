@@ -1,3 +1,10 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+# ------ Copyright (C) 2018 University of Strathclyde and Author ------
+# ---------------------- Author: Callum Wilson ------------------------
+# --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
+
 import numpy as np
 from eqlm_agent import EQLMAgent
 from qnet_agent import DoubleQNet
@@ -9,26 +16,26 @@ import gc
 import time
 
 
-class NetworkConfig():
-	def __init__(self):
-		self.alpha = 0.01
-		self.clip_norm = []
-		self.update_steps = 50
-		self.gamma_reg = 0.03
-		self.N_hid = 20
-		self.timing = False
+def network_config():
+	netcon = {}
+	netcon['alpha'] = 0.01
+	netcon['gamma_reg'] = 0.0621
+	netcon['clip_norm'] = 1.0
+	netcon['update_steps'] = 15
+	netcon['N_hid'] = 11
+	return netcon
 
 
-class AgentConfig():
-	def __init__(self):
-		self.gamma = 1.0
-		self.eps0 = 0.9
-		self.epsf = 0.0
-		self.n_eps = 1400
-		self.minib = 20
-		self.max_mem = 10000
-		self.prioritized = False
-		self.printQ = False
+def agent_config():
+	agentcon = {}
+	agentcon['gamma'] = 0.5
+	agentcon['eps0'] = 0.782
+	agentcon['epsf'] = 0.0
+	agentcon['n_eps'] = 410
+	agentcon['minib'] = 6
+	agentcon['max_mem'] = 10000
+	agentcon['max_exp'] = 500
+	return agentcon
 
 
 def opt_function(hyper_params):
@@ -81,13 +88,13 @@ def init_configs(gamma_r, update_steps, N_hid, gamma, eps0, n_eps, minib):
 	netcon = NetworkConfig()
 	agentcon = AgentConfig()
 
-	netcon.gamma_reg = gamma_r
-	netcon.update_steps = int(update_steps)
-	netcon.N_hid = int(N_hid)
-	agentcon.gamma = gamma
-	agentcon.eps0 = eps0
-	agentcon.n_eps = int(n_eps)
-	agentcon.minib = int(minib)
+	netcon['gamma_reg'] = gamma_r
+	netcon['update_steps'] = int(update_steps)
+	netcon['N_hid'] = int(N_hid)
+	agentcon['gamma'] = gamma
+	agentcon['eps0'] = eps0
+	agentcon['n_eps'] = int(n_eps)
+	agentcon['minib'] = int(minib)
 
 
 def do_run(run_no):
