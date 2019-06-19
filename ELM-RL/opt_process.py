@@ -24,7 +24,8 @@ def sort_loss(val):
 	return val[1]
 
 
-fname = 'opt_acrobot_gammar_12_6.p'
+# fname = 'opt_acrobot_gammar_12_6.p'
+fname = 'paramopt_data/opt_acrobot_qnet_area.p'
 print('Loading trials...')
 trials = pickle.load(open(fname,'rb'))
 
@@ -37,6 +38,12 @@ print(tabulate(tab_data, headers = ['Run No', 'Loss', 'Loss Runs']))
 tab_data = [[i, trials.losses()[i], trials.trials[i]['misc']['vals']] for i in range(len(trials.trials))]
 tab_data.sort(key = sort_loss, reverse = True)
 print(tabulate(tab_data))
+
+p_vec = [trials.trials[i]['misc']['vals']['update_steps'] for i in range(len(trials.trials))]
+loss_vec = [trials.losses()[i] for i in range(len(trials.trials))]
+
+plt.plot(p_vec, loss_vec, 'k.')
+plt.show()
 
 N_avg = 50
 while True:
