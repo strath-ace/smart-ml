@@ -45,18 +45,16 @@ def opt_function(hyper_params):
 	# [update_steps, N_hid, gamma, eps0]
 
 	n_process = cpu_count()
-	n_run = 8
+	n_run = 10
 	if __name__ == '__main__':
 		p = Pool(processes=n_process, initializer=init_configs, initargs=hyper_params)
 		R_ep_runs = p.map_async(do_run_acro, range(n_run))
 
-	# print('Current params:' +
-	# 	  '\nupdate_steps ' + repr(hyper_params[0].__trunc__()) +
-	# 	  '\nN_hid ' + repr(hyper_params[1].__trunc__()) +
-	# 	  '\ngamma ' + repr(round(hyper_params[2], 3)) +
-	# 	  '\neps0 ' + repr(round(hyper_params[3], 3)))
-
-	print('Current gamma_reg:' + repr(hyper_params[0]))
+	print('Current params:' +
+		  '\nupdate_steps ' + repr(hyper_params[0].__trunc__()) +
+		  '\nN_hid ' + repr(hyper_params[1].__trunc__()) +
+		  '\ngamma ' + repr(round(hyper_params[2], 3)) +
+		  '\neps0 ' + repr(round(hyper_params[3], 3)))
 
 	R_runs = R_ep_runs.get()
 	regret_runs = [-np.trapz(R_run) for R_run in R_runs]
@@ -89,23 +87,16 @@ def run_trials(filename, space):
 	pickle.dump(trials, open(filename, "wb"))
 
 
-# def init_configs(update_steps, N_hid, gamma, eps0):
-# 	# [update_steps, N_hid, gamma, eps0]
-# 	global netcon, agentcon
-# 	netcon = network_config()
-# 	agentcon = agent_config()
-
-# 	netcon['update_steps'] = int(update_steps)
-# 	netcon['N_hid'] = int(N_hid)
-# 	agentcon['gamma'] = gamma
-# 	agentcon['eps0'] = eps0
-
-def init_configs(gamma_reg):
+def init_configs(update_steps, N_hid, gamma, eps0):
+	# [update_steps, N_hid, gamma, eps0]
 	global netcon, agentcon
 	netcon = network_config()
 	agentcon = agent_config()
 
-	netcon['gamma_reg'] = gamma_reg
+	netcon['update_steps'] = int(update_steps)
+	netcon['N_hid'] = int(N_hid)
+	agentcon['gamma'] = gamma
+	agentcon['eps0'] = eps0
 
 
 def do_run_acro(run_no):
@@ -127,19 +118,18 @@ def do_run_acro(run_no):
 		R_ep.append(r)
 	agent.sess.close()
 
-	# print('Run {} mean value {}'.format(run_no, np.mean(R_ep[-100:])))
+	print('Run {} mean value {}'.format(run_no, np.mean(R_ep[-100:])))
 	return R_ep
 
 
 # # [update_steps, N_hid, gamma, eps0]
 
 gc.enable()
-# space = [hp.quniform('update_steps', 10, 40, 1),
-# 		 hp.quniform('N_hid', 20, 30, 1),
-# 		 hp.uniform('gamma', 0.8, 1.0),
-# 		 hp.uniform('eps0', 0.8, 1.0)]
-space = [hp.loguniform('gamma_reg', -4.6, -1.6)]
+space = [hp.quniform('update_steps', 10, 40, 1),
+		 hp.quniform('N_hid', 20, 30, 1),
+		 hp.uniform('gamma', 0.8, 1.0),
+		 hp.uniform('eps0', 0.8, 1.0)]
 
-filename = 'opt_acrobot_gammar_12_6.p'
+filename = 'opt_acrobot_eqlm_summer.p'
 while True:
 	run_trials(filename, space)
