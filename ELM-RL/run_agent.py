@@ -32,6 +32,8 @@ def network_config():
 	netcon['clip_norm'] = 1.0
 	netcon['update_steps'] = 15
 	netcon['N_hid'] = 11
+	netcon['activation'] = 'tanh'
+	netcon['init_mag'] = 0.1
 	return netcon
 
 
@@ -43,7 +45,6 @@ def agent_config():
 	agentcon['n_eps'] = 410
 	agentcon['minib'] = 6
 	agentcon['max_mem'] = 10000
-	agentcon['max_exp'] = 500
 	return agentcon
 
 N_ep = 1200

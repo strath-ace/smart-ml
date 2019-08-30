@@ -27,17 +27,20 @@ class QNetAgent():
 
 		# Build network
 		self.state_input = tf.placeholder(shape=[1,self.state_size],dtype=tf.float32)
-		self.w_in = tf.Variable(tf.random_uniform([self.state_size,self.N_hid],0,0.1))
+		self.w_in = tf.Variable(tf.random_uniform([self.state_size,self.N_hid],0,self.init_mag))
 		self.b_in = tf.Variable(tf.random_uniform([1,self.N_hid],0,0))
-		self.W = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,0.1))
-		act_fn = tf.tanh
+		self.W = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,self.init_mag))
+		try:
+			act_fn = getattr(tf,self.activation)
+		except AttributeError:
+			act_fn = tf.tanh
 		self.act = act_fn(tf.matmul(self.state_input,tf.add(self.w_in,self.b_in)), name=None)
 		self.Q_est = tf.matmul(self.act,self.W)
 
 		# Updating
 		self.nextQ = tf.placeholder(shape=[1,self.action_size],dtype=tf.float32)
 		loss = tf.reduce_sum(tf.square(self.nextQ - self.Q_est))
-		trainer = tf.train.RMSPropOptimizer(self.alpha)
+		trainer = tf.compat.v1.train.GradientDescentOptimizer(self.alpha)
 		if isinstance(self.clip_norm, float):
 			grads = trainer.compute_gradients(loss,[self.W,self.w_in,self.b_in])
 			cap_grads = [(tf.clip_by_norm(grad, self.clip_norm), var) for grad, var in grads]
