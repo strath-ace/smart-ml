@@ -9,6 +9,7 @@ import tensorflow as tf
 import numpy as np
 import random
 import math
+import pandas as pd
 from environment import Environment
 from operator import itemgetter
 import pdb
@@ -67,6 +68,11 @@ class QNetAgent():
 		self.prev_s=[]
 		self.prev_a=[]
 		self.memory=[]
+		self.mem_df = pd.DataFrame(columns = ['s', 'a', 'r', 'sd', 'done']).astype({'s':'object', 
+																					'a':'int64', 
+																					'r':'float64', 
+																					'sd':'object',
+																				    'done':'bool'})
 		self.step_count=0
 		self.ep_no=0
 
@@ -84,6 +90,7 @@ class QNetAgent():
 	def update_net(self,state,reward,done):
 
 		# Update epsilon
+		sdash = state
 		if done:
 			state=[]
 			self.ep_no+=1
@@ -93,38 +100,75 @@ class QNetAgent():
 				self.eps=self.epsf
 
 		# Update memory
-		self.memory.append([self.prev_s,self.prev_a,reward,state])
+		self.memory.append([self.prev_s,self.prev_a,reward,sdash,done])
 		if len(self.memory)>self.max_mem:
 			del self.memory[0]
+# 		# pandas method
+# 		self.mem_df = self.mem_df.append(pd.DataFrame({'s':[self.prev_s], 
+# 													   'a':self.prev_a, 
+# 													   'r':reward, 
+# 													   'sd':[sdash],
+# 													   'done':done}), ignore_index=True)
 
 		# Select data from memory
 		if len(self.memory)>self.minib & self.minib>1:
 			sample_ind=random.sample(range(1,len(self.memory)),self.minib)
+			df_ind = sample_ind
 		elif self.minib==1:
 			sample_ind=[len(self.memory)-1]
 		else:
 			sample_ind=range(len(self.memory))
-
-		# Update network
+			df_ind = sample_ind
+		
+		# update network
 		with self.sess.as_default():
-			S_mat = []
-			Q_mat = []
-			for ind in sample_ind:
-				s=self.memory[ind][0]
+			# vectorised
+			S1 = np.stack([self.memory[ind][0] for ind in sample_ind])
+			Sd1 = np.stack([self.memory[ind][3] for ind in sample_ind])
+			q_s1 = self.Qt.eval({self.state_input:S1})
+			q_d1 = self.Qt.eval({self.state_input:Sd1})
+			for i, ind in enumerate(sample_ind):
 				r=self.memory[ind][2]
 				a=self.memory[ind][1]
-				q_s=self.Qt.eval({self.state_input:s.reshape(1,-1)})
-				if len(self.memory[ind][3])>0:
-					q_dash=self.Qt.eval({self.state_input:self.memory[ind][3].reshape(1,-1)})
-					q_s[0][a]=r+self.gamma*np.amax(q_dash)
+				if self.memory[ind][4]:
+					q_s1[i][a] = r
 				else:
-					q_s[0][a]=r
-				S_mat.append(s)
-				Q_mat.append(q_s)
-# 				self.sess.run(self.updateModel,{self.state_input:s_update,self.nextQ:q_target})
-			S = np.stack(S_mat,axis=1).reshape(-1,self.state_size)
-			Q = np.stack(Q_mat,axis=1).reshape(-1,self.action_size)
-			self.sess.run(self.updateModel,{self.state_input:S,self.nextQ:Q})
+					q_s1[i][a] = r + self.gamma*np.amax(q_d1[i])
+			self.sess.run(self.updateModel,{self.state_input:S1,self.nextQ:q_s1})
+			
+# 			#iterative
+# 			S_mat = []
+# 			Q_mat = []
+# 			for ind in sample_ind:
+# 				s=self.memory[ind][0]
+# 				r=self.memory[ind][2]
+# 				a=self.memory[ind][1]
+# 				q_s=self.Qt.eval({self.state_input:s.reshape(1,-1)})
+# 				if not self.memory[ind][4]:
+# 					q_dash=self.Qt.eval({self.state_input:self.memory[ind][3].reshape(1,-1)})
+# 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
+# 				else:
+# 					q_s[0][a]=r
+# 				S_mat.append(np.array(s))
+# 				Q_mat.append(np.array(q_s[0]))
+# 			S = np.stack(S_mat)
+# 			Q = np.stack(Q_mat)
+# 			self.sess.run(self.updateModel,{self.state_input:S,self.nextQ:Q})
+			
+# 			# pandas method
+# 			update_df = self.mem_df.loc[df_ind]
+# 			S_df = np.stack(update_df.s.to_numpy())
+# 			Sd_df = np.stack(update_df.sd.to_numpy())
+# 			q_sdf = pd.DataFrame(self.Qt.eval({self.state_input:S_df}), columns = range(self.action_size))
+# 			q_sddf = np.amax(self.Qt.eval({self.state_input:Sd_df}), axis=1)
+# 			for i in range(len(q_sddf)):
+# 				df_row = update_df.iloc[i]
+# 				if df_row.done:
+# 					q_sdf.loc[i,df_row.a] = df_row.r
+# 				else:
+# 					q_sdf.loc[i,df_row.a] = q_sddf[i]*self.gamma + df_row.r
+# 			Q_df = np.stack(q_sdf.to_numpy())
+# 			self.sess.run(self.updateModel,{self.state_input:S_df,self.nextQ:Q_df})
 
 		# Update target network
 		self.step_count += 1

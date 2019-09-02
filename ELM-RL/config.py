@@ -18,6 +18,6 @@ def agent_config():
 	agentcon['eps0'] = 0.782
 	agentcon['epsf'] = 0.0
 	agentcon['n_eps'] = 410
-	agentcon['minib'] = 6
+	agentcon['minib'] = 10
 	agentcon['max_mem'] = 10000
 	return agentcon

@@ -46,7 +46,7 @@ class EQLMAgent():
 		# Initialisation
 		A_t1 = tf.add(tf.scalar_mul(1/self.gamma_reg,tf.eye(self.N_hid)),
 			tf.matmul(self.H_trans,self.H))
-		A_t1_inv = tf.matrix_inverse(A_t1)
+		A_t1_inv = tf.linalg.inv(A_t1)
 		W_t1 = tf.matmul(A_t1_inv,tf.matmul(self.H_trans,self.T))
 		self.W_init = self.W.assign(W_t1)
 		self.A_init = self.A_inv.assign(A_t1_inv)
@@ -55,7 +55,7 @@ class EQLMAgent():
 		K1 = tf.add(tf.matmul(self.H,tf.matmul(self.A_inv,self.H_trans)),tf.eye(self.minib))
 		# need to optimise
 		K_t = tf.subtract(tf.eye(self.N_hid),
-			tf.matmul(self.A_inv,tf.matmul(self.H_trans,tf.matmul(tf.matrix_inverse(K1),self.H))))
+			tf.matmul(self.A_inv,tf.matmul(self.H_trans,tf.matmul(tf.linalg.inv(K1),self.H))))
 		W_new = tf.add(tf.matmul(K_t,self.W),
 			tf.matmul(tf.matmul(K_t,self.A_inv),tf.matmul(self.H_trans,self.T)))
 		A_new = tf.matmul(K_t,self.A_inv)
