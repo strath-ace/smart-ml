@@ -26,7 +26,7 @@ class QNetAgent():
 		self.action_size = env.action_size
 
 		# Build network
-		self.state_input = tf.placeholder(shape=[1,self.state_size],dtype=tf.float32)
+		self.state_input = tf.placeholder(shape=[None,self.state_size],dtype=tf.float32)
 		self.w_in = tf.Variable(tf.random_uniform([self.state_size,self.N_hid],0,self.init_mag))
 		self.b_in = tf.Variable(tf.random_uniform([1,self.N_hid],0,0))
 		self.W = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,self.init_mag))
@@ -38,7 +38,7 @@ class QNetAgent():
 		self.Q_est = tf.matmul(self.act,self.W)
 
 		# Updating
-		self.nextQ = tf.placeholder(shape=[1,self.action_size],dtype=tf.float32)
+		self.nextQ = tf.placeholder(shape=[None,self.action_size],dtype=tf.float32)
 		loss = tf.reduce_sum(tf.square(self.nextQ - self.Q_est))
 		trainer = tf.compat.v1.train.GradientDescentOptimizer(self.alpha)
 		if isinstance(self.clip_norm, float):
@@ -107,6 +107,8 @@ class QNetAgent():
 
 		# Update network
 		with self.sess.as_default():
+			S_mat = []
+			Q_mat = []
 			for ind in sample_ind:
 				s=self.memory[ind][0]
 				r=self.memory[ind][2]
@@ -117,9 +119,12 @@ class QNetAgent():
 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
 				else:
 					q_s[0][a]=r
-				s_update=s.reshape(1,-1)
-				q_target=q_s.reshape(1,-1)
-				self.sess.run(self.updateModel,{self.state_input:s_update,self.nextQ:q_target})
+				S_mat.append(s)
+				Q_mat.append(q_s)
+# 				self.sess.run(self.updateModel,{self.state_input:s_update,self.nextQ:q_target})
+			S = np.stack(S_mat,axis=1).reshape(-1,self.state_size)
+			Q = np.stack(Q_mat,axis=1).reshape(-1,self.action_size)
+			self.sess.run(self.updateModel,{self.state_input:S,self.nextQ:Q})
 
 		# Update target network
 		self.step_count += 1
