@@ -47,9 +47,9 @@ def agent_config():
 	agentcon['max_mem'] = 10000
 	return agentcon
 
-N_ep = 1200
+N_ep = 600
 env = Environment()
-agent = EQLMAgent(agent_config(),network_config(),env)
+agent = QNetAgent(agent_config(),network_config(),env)
 
 # Train the network for N_ep episodes
 R_ep = []
@@ -69,13 +69,13 @@ for ep_no in range(N_ep):
 	print('R: ' + repr(r) + ' Length: ' + repr(n_step))
 
 # Visualise the learned policy
-for ep_no in range(15):
-	observation = env.reset()
-	done = False
-	while done == False:
-		action = agent.action_select(env,observation)
-		observation, _, done, _ = env.step(action)
-		env.render()
+# for ep_no in range(15):
+# 	observation = env.reset()
+# 	done = False
+# 	while done == False:
+# 		action = agent.action_select(env,observation)
+# 		observation, _, done, _ = env.step(action)
+# 		env.render()
 
 agent.sess.close()
 

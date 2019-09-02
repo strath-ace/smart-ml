@@ -26,7 +26,7 @@ class EQLMAgent():
 		self.action_size = env.action_size
 
 		# Build network
-		self.state_input = tf.placeholder(shape=[1,self.state_size],dtype=tf.float32)
+		self.state_input = tf.placeholder(shape=[None,self.state_size],dtype=tf.float32)
 		self.w_in = tf.Variable(tf.random_uniform([self.state_size,self.N_hid],0,self.init_mag))
 		self.b_in = tf.Variable(tf.random_uniform([1,self.N_hid],0,0))
 		self.W = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,self.init_mag))
