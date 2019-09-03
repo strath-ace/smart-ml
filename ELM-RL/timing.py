@@ -1,5 +1,20 @@
 import time
 import cProfile, pstats
+from qnet_agent import QNetAgent
+from eqlm_agent import EQLMAgent
+from environment import Environment
+from config import *
+
+def new_profile(agent_type, n_step = 100):
+	env = Environment()
+	if agent_type == 'EQLM':
+		agent = EQLMAgent(agent_config(),network_config(),env)
+	elif agent_type == 'QNet':
+		agent = QNetAgent(agent_config(),network_config(),env)
+	else:
+		raise ValueError('Invalid agent type')
+	ps = get_profile(agent, env, n_step)
+	return agent, env, ps
 
 def get_profile(agent, env, n_step = 100):
 	pr = cProfile.Profile()

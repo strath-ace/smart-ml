@@ -63,7 +63,7 @@ class EQLMAgent():
 		self.A_update = self.A_inv.assign(A_new)
 
 		# Target network update
-		self.Wt = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,0.1))
+		self.Wt = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,self.init_mag))
 		self.Qt = tf.matmul(self.act,self.Wt)
 		self.Wt_assign = self.Wt.assign(self.W)
 
@@ -74,20 +74,23 @@ class EQLMAgent():
 		# Memory initialisation
 		self.prev_s=[]
 		self.prev_a=[]
+		self.prev_h=[]
 		self.memory=[]
+		self.memory1=[]
 		self.step_count=0
 		self.ep_no=0
 		self.first=True
 
 	def action_select(self,env,state):
 
+		q_s, h_s = self.sess.run((self.Q_est, self.act),feed_dict={self.state_input:state.reshape(1,-1)})
 		if np.random.random(1)<self.eps:
 			action=env.rand_action()
 		else:
-			q_s=self.sess.run(self.Q_est,feed_dict={self.state_input:state.reshape(1,-1)})
 			action=np.argmax(q_s)
 		self.prev_s=state
 		self.prev_a=action
+		self.prev_h=h_s[0]
 		return action
 
 	def update_net(self,state,reward,done):
@@ -111,6 +114,9 @@ class EQLMAgent():
 				self.memory.append([self.act.eval(feed_dict={self.state_input:self.prev_s.reshape(1,-1)}).tolist(),
 					self.prev_a,reward,
 					self.act.eval(feed_dict={self.state_input:state.reshape(1,-1)}).tolist()])
+		
+		#### new ####
+		self.memory1.append([self.prev_h, self.prev_a, reward, state, done])
 
 		if len(self.memory)>self.max_mem:
 			del self.memory[0]
@@ -122,32 +128,57 @@ class EQLMAgent():
 			sample_ind=[len(self.memory)-1]
 		else:
 			return
+		
+		
+		# from here, similar/same as qnet...
 
 		# Create matrices of pre-processed states and targets
 		H_update=[]
 		q_target=[]
 		with self.sess.as_default():
-			for ind in sample_ind:
-				h=self.memory[ind][0]
-				r=self.memory[ind][2]
-				a=self.memory[ind][1]
-				q_s=self.Qt.eval(feed_dict={self.act:h})
-				if len(self.memory[ind][3])>0:
-					q_dash=self.Qt.eval({self.act:self.memory[ind][3]})
-					q_s[0][a]=r+self.gamma*np.amax(q_dash)
+			
+			#### new ####
+			H1 = np.stack([self.memory1[ind][0] for ind in sample_ind])
+			Sd1 = np.stack([self.memory1[ind][3] for ind in sample_ind])
+			q_s1 = self.Qt.eval({self.act:H1})
+			q_d1 = self.Qt.eval({self.state_input:Sd1})
+			for i, ind in enumerate(sample_ind):
+				r=self.memory1[ind][2]
+				a=self.memory1[ind][1]
+				if self.memory1[ind][4]:
+					q_s1[i][a] = r
 				else:
-					q_s[0][a]=r
-				H_update+=h
-				q_target+=q_s.reshape(1,-1).tolist()
-
+					q_s1[i][a] = r + self.gamma*np.amax(q_d1[i])
+			
+			#### old ####
+# 			for ind in sample_ind:
+# 				h=self.memory[ind][0]
+# 				r=self.memory[ind][2]
+# 				a=self.memory[ind][1]
+# 				q_s=self.Qt.eval(feed_dict={self.act:h})
+# 				if len(self.memory[ind][3])>0:
+# 					q_dash=self.Qt.eval({self.act:self.memory[ind][3]})
+# 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
+# 				else:
+# 					q_s[0][a]=r
+# 				H_update+=h
+# 				q_target+=q_s.reshape(1,-1).tolist()
+				
 		# Run updates
 		if self.first:
-			self.sess.run(self.W_init,feed_dict={self.H:H_update,self.T:q_target})
-			self.sess.run(self.A_init,feed_dict={self.H:H_update})
+# 			self.sess.run(self.W_init,feed_dict={self.H:H_update,self.T:q_target})
+# 			self.sess.run(self.A_init,feed_dict={self.H:H_update})
+
+# 			self.sess.run((self.W_init, self.A_init),feed_dict={self.H:H_update,self.T:q_target})
+			self.sess.run((self.W_init, self.A_init),feed_dict={self.H:H1,self.T:q_s1})
+			
 			self.first = False
 		else:
-			self.sess.run(self.W_update,feed_dict={self.H:H_update,self.T:q_target})
-			self.sess.run(self.A_update,feed_dict={self.H:H_update})
+# 			self.sess.run(self.W_update,feed_dict={self.H:H_update,self.T:q_target})
+# 			self.sess.run(self.A_update,feed_dict={self.H:H_update})
+
+# 			self.sess.run((self.W_update, self.A_update),feed_dict={self.H:H_update,self.T:q_target})
+			self.sess.run((self.W_update, self.A_update),feed_dict={self.H:H1,self.T:q_s1})
 
 		# Target network update
 		self.step_count += 1

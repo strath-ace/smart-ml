@@ -113,12 +113,10 @@ class QNetAgent():
 		# Select data from memory
 		if len(self.memory)>self.minib & self.minib>1:
 			sample_ind=random.sample(range(1,len(self.memory)),self.minib)
-			df_ind = sample_ind
 		elif self.minib==1:
 			sample_ind=[len(self.memory)-1]
 		else:
 			sample_ind=range(len(self.memory))
-			df_ind = sample_ind
 		
 		# update network
 		with self.sess.as_default():
@@ -169,6 +167,22 @@ class QNetAgent():
 # 					q_sdf.loc[i,df_row.a] = q_sddf[i]*self.gamma + df_row.r
 # 			Q_df = np.stack(q_sdf.to_numpy())
 # 			self.sess.run(self.updateModel,{self.state_input:S_df,self.nextQ:Q_df})
+
+# 		#old
+# 		with self.sess.as_default():
+# 			for ind in sample_ind:
+# 				s=self.memory[ind][0]
+# 				r=self.memory[ind][2]
+# 				a=self.memory[ind][1]
+# 				q_s=self.Qt.eval({self.state_input:s.reshape(1,-1)})
+# 				if len(self.memory[ind][3])>0:
+# 					q_dash=self.Qt.eval({self.state_input:self.memory[ind][3].reshape(1,-1)})
+# 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
+# 				else:
+# 					q_s[0][a]=r
+# 				s_update=s.reshape(1,-1)
+# 				q_target=q_s.reshape(1,-1)
+# 				self.sess.run(self.updateModel,{self.state_input:s_update,self.nextQ:q_target})
 
 		# Update target network
 		self.step_count += 1
