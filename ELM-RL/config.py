@@ -7,17 +7,17 @@ def network_config():
 	netcon['clip_norm'] = 1.0
 	netcon['update_steps'] = 15
 	netcon['N_hid'] = 11
-	netcon['activation'] = 'sigmoid'
-	netcon['init_mag'] = 0.1
+	netcon['activation'] = 'tanh'
+	netcon['init_mag'] = 0.01
 	return netcon
 
 
 def agent_config():
 	agentcon = {}
-	agentcon['gamma'] = 0.5
-	agentcon['eps0'] = 0.782
+	agentcon['gamma'] = 0.8
+	agentcon['eps0'] = 0.8
 	agentcon['epsf'] = 0.0
-	agentcon['n_eps'] = 410
+	agentcon['n_eps'] = 420
 	agentcon['minib'] = 10
 	agentcon['max_mem'] = 10000
 	return agentcon

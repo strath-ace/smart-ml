@@ -9,7 +9,6 @@ import tensorflow as tf
 import numpy as np
 import random
 import math
-import pandas as pd
 from environment import Environment
 from operator import itemgetter
 import pdb
@@ -35,7 +34,7 @@ class QNetAgent():
 			act_fn = getattr(tf,self.activation)
 		except AttributeError:
 			act_fn = tf.tanh
-		self.act = act_fn(tf.matmul(self.state_input,tf.add(self.w_in,self.b_in)), name=None)
+		self.act = act_fn(tf.add(tf.matmul(self.state_input,self.w_in),self.b_in), name=None)
 		self.Q_est = tf.matmul(self.act,self.W)
 
 		# Updating
@@ -48,12 +47,18 @@ class QNetAgent():
 			self.updateModel = trainer.apply_gradients(cap_grads)
 		else:
 			self.updateModel = trainer.minimize(loss,var_list=[self.W,self.w_in,self.b_in])
+			
+# 		if isinstance(self.clip_norm, float):
+# 			trainer = tf.keras.optimizers.SGD(learning_rate=self.alpha, clipnorm=self.clip_norm)
+# 		else:
+# 			trainer = tf.keras.optimizers.SGD(learning_rate=self.alpha)
+# 		self.updateModel = trainer.minimize(loss,var_list=[self.W,self.w_in,self.b_in])
 
 		# Target network
 		self.wt = tf.Variable(tf.random_uniform([self.state_size,self.N_hid],0,0.1))
 		self.bt = tf.Variable(tf.random_uniform([1,self.N_hid],0,0.01))
 		self.Wt = tf.Variable(tf.random_uniform([self.N_hid,self.action_size],0,0.1))
-		self.actt = act_fn(tf.matmul(self.state_input,tf.add(self.wt,self.bt)), name=None)
+		self.actt = act_fn(tf.add(tf.matmul(self.state_input,self.wt),self.bt), name=None)
 		self.Qt = tf.matmul(self.actt,self.Wt)
 		
 		self.wt_assign = self.wt.assign(self.w_in)
@@ -68,11 +73,6 @@ class QNetAgent():
 		self.prev_s=[]
 		self.prev_a=[]
 		self.memory=[]
-		self.mem_df = pd.DataFrame(columns = ['s', 'a', 'r', 'sd', 'done']).astype({'s':'object', 
-																					'a':'int64', 
-																					'r':'float64', 
-																					'sd':'object',
-																				    'done':'bool'})
 		self.step_count=0
 		self.ep_no=0
 
@@ -90,9 +90,7 @@ class QNetAgent():
 	def update_net(self,state,reward,done):
 
 		# Update epsilon
-		sdash = state
 		if done:
-			state=[]
 			self.ep_no+=1
 			if self.ep_no<self.n_eps:
 				self.eps=float(self.eps0)-self.ep_no*(float(self.eps0)-float(self.epsf))/float(self.n_eps)
@@ -100,15 +98,9 @@ class QNetAgent():
 				self.eps=self.epsf
 
 		# Update memory
-		self.memory.append([self.prev_s,self.prev_a,reward,sdash,done])
+		self.memory.append([self.prev_s,self.prev_a,reward,state,done])
 		if len(self.memory)>self.max_mem:
 			del self.memory[0]
-# 		# pandas method
-# 		self.mem_df = self.mem_df.append(pd.DataFrame({'s':[self.prev_s], 
-# 													   'a':self.prev_a, 
-# 													   'r':reward, 
-# 													   'sd':[sdash],
-# 													   'done':done}), ignore_index=True)
 
 		# Select data from memory
 		if len(self.memory)>self.minib & self.minib>1:
@@ -118,9 +110,8 @@ class QNetAgent():
 		else:
 			sample_ind=range(len(self.memory))
 		
-		# update network
+		# Update network
 		with self.sess.as_default():
-			# vectorised
 			S1 = np.stack([self.memory[ind][0] for ind in sample_ind])
 			Sd1 = np.stack([self.memory[ind][3] for ind in sample_ind])
 			q_s1 = self.Qt.eval({self.state_input:S1})
@@ -133,56 +124,6 @@ class QNetAgent():
 				else:
 					q_s1[i][a] = r + self.gamma*np.amax(q_d1[i])
 			self.sess.run(self.updateModel,{self.state_input:S1,self.nextQ:q_s1})
-			
-# 			#iterative
-# 			S_mat = []
-# 			Q_mat = []
-# 			for ind in sample_ind:
-# 				s=self.memory[ind][0]
-# 				r=self.memory[ind][2]
-# 				a=self.memory[ind][1]
-# 				q_s=self.Qt.eval({self.state_input:s.reshape(1,-1)})
-# 				if not self.memory[ind][4]:
-# 					q_dash=self.Qt.eval({self.state_input:self.memory[ind][3].reshape(1,-1)})
-# 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
-# 				else:
-# 					q_s[0][a]=r
-# 				S_mat.append(np.array(s))
-# 				Q_mat.append(np.array(q_s[0]))
-# 			S = np.stack(S_mat)
-# 			Q = np.stack(Q_mat)
-# 			self.sess.run(self.updateModel,{self.state_input:S,self.nextQ:Q})
-			
-# 			# pandas method
-# 			update_df = self.mem_df.loc[df_ind]
-# 			S_df = np.stack(update_df.s.to_numpy())
-# 			Sd_df = np.stack(update_df.sd.to_numpy())
-# 			q_sdf = pd.DataFrame(self.Qt.eval({self.state_input:S_df}), columns = range(self.action_size))
-# 			q_sddf = np.amax(self.Qt.eval({self.state_input:Sd_df}), axis=1)
-# 			for i in range(len(q_sddf)):
-# 				df_row = update_df.iloc[i]
-# 				if df_row.done:
-# 					q_sdf.loc[i,df_row.a] = df_row.r
-# 				else:
-# 					q_sdf.loc[i,df_row.a] = q_sddf[i]*self.gamma + df_row.r
-# 			Q_df = np.stack(q_sdf.to_numpy())
-# 			self.sess.run(self.updateModel,{self.state_input:S_df,self.nextQ:Q_df})
-
-# 		#old
-# 		with self.sess.as_default():
-# 			for ind in sample_ind:
-# 				s=self.memory[ind][0]
-# 				r=self.memory[ind][2]
-# 				a=self.memory[ind][1]
-# 				q_s=self.Qt.eval({self.state_input:s.reshape(1,-1)})
-# 				if len(self.memory[ind][3])>0:
-# 					q_dash=self.Qt.eval({self.state_input:self.memory[ind][3].reshape(1,-1)})
-# 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
-# 				else:
-# 					q_s[0][a]=r
-# 				s_update=s.reshape(1,-1)
-# 				q_target=q_s.reshape(1,-1)
-# 				self.sess.run(self.updateModel,{self.state_input:s_update,self.nextQ:q_target})
 
 		# Update target network
 		self.step_count += 1
