@@ -151,40 +151,40 @@ def data_abtest(r_data1, r_data2=None, alg_str=None):
 
 # Load Data #
 # cartpole
-print('Loading cartpole...')
-fname = 'data/cartpole_qnet_27_3.npy'
-data_all_qnet = np.load(fname).tolist()
-data_qnet = data_all_qnet['R_run']
-fname = 'data/cartpole_eqlm_20_3.npy'
-data_all_eqlm = np.load(fname).tolist()
-data_eqlm = data_all_eqlm['R_run']
-# timings
-print('Loading timings...')
-fname = 'data/timings_qnet_minib_12_3_0.npy'
-tdata_qnet = np.load(fname).tolist()
-fname = 'data/timings_eqlm_minib_12_3_0.npy'
-tdata_eqlm = np.load(fname).tolist()
-# acrobot
-print('Loading acrobot...')
-fname = 'data/acrobot_eqlm_30_5_all.npy'
-data_all_acrobot = np.load(fname).tolist()
-fname = 'data/acrobot_eqlm_1_4.npy'
-data_old_acrobot = np.load(fname).tolist()
+# print('Loading cartpole...')
+# fname = 'data/cartpole_qnet_27_3.npy'
+# data_all_qnet = np.load(fname).tolist()
+# data_qnet = data_all_qnet['R_run']
+# fname = 'data/cartpole_eqlm_20_3.npy'
+# data_all_eqlm = np.load(fname).tolist()
+# data_eqlm = data_all_eqlm['R_run']
+# # timings
+# print('Loading timings...')
+# fname = 'data/timings_qnet_minib_12_3_0.npy'
+# tdata_qnet = np.load(fname).tolist()
+# fname = 'data/timings_eqlm_minib_12_3_0.npy'
+# tdata_eqlm = np.load(fname).tolist()
+# # acrobot
+# print('Loading acrobot...')
+# fname = 'data/acrobot_eqlm_30_5_all.npy'
+# data_all_acrobot = np.load(fname).tolist()
+# fname = 'data/acrobot_eqlm_1_4.npy'
+# data_old_acrobot = np.load(fname).tolist()
 
-# Process Data #
-# disp_runs(data_eqlm, 'EQLM')
-# disp_data(data_eqlm, 'EQLM')
-# data_stats(data_eqlm, [4, 68, 5], 'EQLM')
-#
-# disp_runs(data_qnet, 'QNet')
-# disp_data(data_qnet, 'QNet')
-# data_stats(data_qnet, [3, 0, 2], 'Q-Network')
-#
-# plot_times(tdata_qnet, tdata_eqlm, ['Q-Network', 'EQLM'])
-#
-# data_abtest(data_eqlm, data_qnet, alg_str=('EQLM', 'QNet'))
-# data_ttest(data_eqlm, data_qnet)
+# # Process Data #
+# # disp_runs(data_eqlm, 'EQLM')
+# # disp_data(data_eqlm, 'EQLM')
+# # data_stats(data_eqlm, [4, 68, 5], 'EQLM')
+# #
+# # disp_runs(data_qnet, 'QNet')
+# # disp_data(data_qnet, 'QNet')
+# # data_stats(data_qnet, [3, 0, 2], 'Q-Network')
+# #
+# # plot_times(tdata_qnet, tdata_eqlm, ['Q-Network', 'EQLM'])
+# #
+# # data_abtest(data_eqlm, data_qnet, alg_str=('EQLM', 'QNet'))
+# # data_ttest(data_eqlm, data_qnet)
 
-data_acro = data_all_acrobot['R_run']
-disp_data(data_acro, title_str='Acrobot EQLM', hist_range=(-500, 0), n_hist=10)
+# data_acro = data_all_acrobot['R_run']
+# disp_data(data_acro, title_str='Acrobot EQLM', hist_range=(-500, 0), n_hist=10)
 # data_abtest(data_acro)
