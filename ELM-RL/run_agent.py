@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 import gym
 import matplotlib.pyplot as plt
+from matplotlib import animation
 import pdb
 
 from qnet_agent import QNetAgent
@@ -24,6 +25,39 @@ def data_smooth(data,n_avg):
 		data_avg.append(np.mean(data[ind-n_avg:ind]))
 	return data_avg
 
+def display_frames_as_gif(frames, filename_gif = None):
+	"""
+	Displays a list of frames as a gif, with controls
+	"""
+	plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi = 72)
+	patch = plt.imshow(frames[0])
+	plt.axis('off')
+	
+	def animate(i):
+		patch.set_data(frames[i])
+	
+	anim = animation.FuncAnimation(plt.gcf(), animate, frames=len(frames), interval=50)
+	if filename_gif: 
+		anim.save(filename_gif, writer='imagemagick', fps=30)
+
+def show_policy(N_ep, env, agent, fname = None):
+	frames = []
+	observation = env.reset()
+	firstframe = env.gym_env.render(mode = 'rgb_array')
+	fig,ax = plt.subplots()
+	im = ax.imshow(firstframe)
+	for ep_no in range(N_ep):
+		observation = env.reset()
+		done = False
+		while not done:
+			action = agent.action_select(env,observation)
+			observation, _, done, _ = env.step(action)
+			frame = env.gym_env.render(mode = 'rgb_array')
+			im.set_data(frame)
+			frames.append(frame)
+	if fname:
+		display_frames_as_gif(frames, filename_gif=fname)
+
 
 def network_config():
 	netcon = {}
@@ -31,24 +65,24 @@ def network_config():
 	netcon['gamma_reg'] = 0.0621
 	netcon['clip_norm'] = 1.0
 	netcon['update_steps'] = 15
-	netcon['N_hid'] = 11
+	netcon['N_hid'] = 12
 	return netcon
 
 
 def agent_config():
 	agentcon = {}
-	agentcon['gamma'] = 0.5
-	agentcon['eps0'] = 0.782
+	agentcon['gamma'] = 0.8
+	agentcon['eps0'] = 0.75
 	agentcon['epsf'] = 0.0
-	agentcon['n_eps'] = 410
-	agentcon['minib'] = 6
+	agentcon['n_eps'] = 1000
+	agentcon['minib'] = 10
 	agentcon['max_mem'] = 10000
 	agentcon['max_exp'] = 500
 	return agentcon
 
 N_ep = 1200
-env = Environment()
-agent = EQLMAgent(agent_config(),network_config(),env)
+env = Environment('LunarLander-v2')
+agent = QNetAgent(agent_config(),network_config(),env)
 
 # Train the network for N_ep episodes
 R_ep = []
@@ -67,14 +101,7 @@ for ep_no in range(N_ep):
 	R_ep.append(r)
 	print('R: ' + repr(r) + ' Length: ' + repr(n_step))
 
-# Visualise the learned policy
-for ep_no in range(15):
-	observation = env.reset()
-	done = False
-	while done == False:
-		action = agent.action_select(env,observation)
-		observation, _, done, _ = env.step(action)
-		env.render()
+show_policy(10, env, agent, fname = 'lander_anim0.gif')
 
 agent.sess.close()
 
