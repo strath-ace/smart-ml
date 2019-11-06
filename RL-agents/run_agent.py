@@ -11,9 +11,9 @@ import gym
 import matplotlib.pyplot as plt
 import pdb
 
-from qnet_agent import QNetAgent
-from eqlm_agent import EQLMAgent
-from environment import Environment
+from qnet_agent_v2 import QNetAgent, HARLAgent
+from environment import Environment, LanderEnvironment
+from lander_sim import heuristic
 
 
 def data_smooth(data,n_avg):
@@ -27,28 +27,28 @@ def data_smooth(data,n_avg):
 
 def network_config():
 	netcon = {}
-	netcon['alpha'] = 0.01
+	netcon['alpha'] = 0.1
 	netcon['gamma_reg'] = 0.0621
 	netcon['clip_norm'] = 1.0
 	netcon['update_steps'] = 15
-	netcon['N_hid'] = 11
+	netcon['N_hid'] = 20
 	return netcon
 
 
 def agent_config():
 	agentcon = {}
-	agentcon['gamma'] = 0.5
-	agentcon['eps0'] = 0.782
+	agentcon['gamma'] = 0.9
+	agentcon['eps0'] = 0.0
 	agentcon['epsf'] = 0.0
-	agentcon['n_eps'] = 410
-	agentcon['minib'] = 6
+	agentcon['n_eps'] = 200
+	agentcon['minib'] = 100
 	agentcon['max_mem'] = 10000
 	agentcon['max_exp'] = 500
 	return agentcon
 
-N_ep = 1200
-env = Environment()
-agent = EQLMAgent(agent_config(),network_config(),env)
+N_ep = 10
+env = LanderEnvironment()
+agent = HARLAgent(agent_config(),network_config(),env,heuristic)
 
 # Train the network for N_ep episodes
 R_ep = []
@@ -67,7 +67,17 @@ for ep_no in range(N_ep):
 	R_ep.append(r)
 	print('R: ' + repr(r) + ' Length: ' + repr(n_step))
 
+# # Visualise random policy
+# for ep_no in range(2):
+# 	observation = env.reset()
+# 	done = False
+# 	while done == False:
+# 		action = env.rand_action()
+# 		observation, _, done, _ = env.step(action)
+# 		env.render()
+
 # Visualise the learned policy
+agent.mode_H=False
 for ep_no in range(15):
 	observation = env.reset()
 	done = False
@@ -79,7 +89,7 @@ for ep_no in range(15):
 agent.sess.close()
 
 # Plot Reward
-N_avg=100
+N_avg=50
 R_plot=data_smooth(R_ep,N_avg)
 plt.plot(np.arange(len(R_plot))*N_avg,R_plot,'r')
 plt.xlabel('Episode', fontsize=12)

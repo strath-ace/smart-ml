@@ -8,6 +8,7 @@
 import numpy as np
 import sys
 import gym
+from lander_sim import LunarLander
 
 class Environment():
 	def __init__(self,env_name='CartPole-v0'):
@@ -22,6 +23,33 @@ class Environment():
 			raise ValueError(env_name + ' environment name does not exist')
 		except AttributeError:
 			raise ValueError(env_name + ' environment action space is incompatible')
+
+	def render(self):
+		self.gym_env.render()
+	def rand_action(self):
+		return self.gym_env.action_space.sample()
+	def reset(self):
+		s = self.gym_env.reset()
+		if isinstance(s,int):
+			state = np.zeros(self.state_size)
+			state[s] = 1
+			s = state
+		return s.reshape(-1)
+	def step(self,a,render=False):
+		s,r,d,info = self.gym_env.step(a)
+		if isinstance(s,int):
+			state = np.zeros(self.state_size)
+			state[s] = 1
+			s = state
+		if render:
+			self.gym_env.render()
+		return s.reshape(-1),r,d,info
+
+class LanderEnvironment():
+	def __init__(self,env_name='CartPole-v0'):
+		self.gym_env = LunarLander()
+		self.state_size = int(np.prod(np.shape(self.gym_env.observation_space)))
+		self.action_size = self.gym_env.action_space.n
 
 	def render(self):
 		self.gym_env.render()
