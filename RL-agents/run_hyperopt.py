@@ -119,34 +119,10 @@ def do_run(run_no):
 	print('Run {} value {}'.format(run_no, np.mean(regret_ep[-100:])))
 	return np.mean(regret_ep[-100:])
 
-
-def do_run_acro(run_no):
-	global agentcon, netcon
-	N_ep = 2000
-	env = Environment('Acrobot-v1')
-	agent = EQLMAgent(agentcon, netcon, env)
-
-	regret_ep = []
-	for ep_no in range(N_ep):
-		observation = env.reset()
-		done = False
-		r = 0
-		while not done:
-			action = agent.action_select(env, observation)
-			observation, reward, done, info = env.step(action)
-			agent.update_net(observation, reward, done)
-			r += reward
-		regret_ep.append(-50-r)
-	agent.sess.close()
-
-	print('Run {} value {}'.format(run_no, np.mean(regret_ep[-100:])))
-	return np.mean(regret_ep[-100:])
-
-
 # # [gamma_r/alpha, update_steps, N_hid, gamma, eps0, n_eps, minib]
 
 gc.enable()
-space = [hp.loguniform('gamma_reg', -4.6, -1.6),
+space = [hp.loguniform('alpha', -4.6, -1.6),
 		 hp.quniform('update_steps', 10, 50, 1),
 		 hp.quniform('N_hid', 20, 30, 1),
 		 hp.uniform('gamma', 0.5, 1.0),
