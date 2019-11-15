@@ -38,8 +38,9 @@ SCALE  = 30.0   # affects how fast-paced the game is, forces should be adjusted 
 MAIN_ENGINE_POWER  = 13.0
 SIDE_ENGINE_POWER  =  0.6
 CROSS_WIND = 0.0
+GUST_MAX = 0.0
 
-INITIAL_RANDOM = 1000  # Set 1500 to make game harder
+INITIAL_RANDOM = 0  # Set 1500 to make game harder
 
 LANDER_POLY =[
 	(-14,+17), (-17,0), (-17,-10),
@@ -79,7 +80,7 @@ class MarsLander(gym.Env, EzPickle):
 
 	continuous = False
 
-	def __init__(self):
+	def __init__(self, step_max=5000):
 		EzPickle.__init__(self)
 		self.seed()
 		self.viewer = None
@@ -90,6 +91,8 @@ class MarsLander(gym.Env, EzPickle):
 		self.particles = []
 
 		self.prev_reward = None
+		self.step_no = 0
+		self.step_max = step_max
 
 		# useful range is -1 .. +1, but spikes can be higher
 		self.observation_space = spaces.Box(-np.inf, np.inf, shape=(8,), dtype=np.float32)
@@ -126,6 +129,7 @@ class MarsLander(gym.Env, EzPickle):
 		self.world.contactListener = self.world.contactListener_keepref
 		self.game_over = False
 		self.prev_shaping = None
+		self.step_no = 0
 
 		W = VIEWPORT_W/SCALE
 		H = VIEWPORT_H/SCALE
@@ -288,6 +292,7 @@ class MarsLander(gym.Env, EzPickle):
 		self.lander.ApplyLinearImpulse( (CROSS_WIND, 0), impulse_pos, True)
 
 		self.world.Step(1.0/FPS, 6*30, 2*30)
+		self.step_no += 1
 
 		pos = self.lander.position
 		vel = self.lander.linearVelocity
@@ -317,6 +322,9 @@ class MarsLander(gym.Env, EzPickle):
 		reward -= s_power*0.03
 
 		done = False
+		if self.step_no > self.step_max:
+			done = True
+			self.step_no = 0
 		if self.game_over or abs(state[0]) >= 1.0:
 			done   = True
 			reward = -100
@@ -444,7 +452,7 @@ def exp_heuristic_lander(env, N_ep=5, seed=None, render=False):
 				print("observations:", " ".join(["{:+0.2f}".format(x) for x in s]))
 				print("step {} total_reward {:+0.2f}".format(steps, total_reward))
 			steps += 1
-			exp_heuristic.append([prev_s,a,r,s])
+			exp_heuristic.append([prev_s,a,r,s,done])
 			if done: break
 	return exp_heuristic
 

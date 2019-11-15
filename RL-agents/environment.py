@@ -8,7 +8,7 @@
 import numpy as np
 import sys
 import gym
-from lander_sim import MarsLander
+from full_lander_sim import MarsLander
 
 class Environment():
 	def __init__(self,env_name='CartPole-v0'):
@@ -46,8 +46,8 @@ class Environment():
 		return s.reshape(-1),r,d,info
 
 class LanderEnvironment():
-	def __init__(self,env_name='CartPole-v0'):
-		self.gym_env = MarsLander()
+	def __init__(self,env_name='CartPole-v0',env_params=None):
+		self.gym_env = MarsLander(env_params=env_params)
 		self.state_size = int(np.prod(np.shape(self.gym_env.observation_space)))
 		self.action_size = self.gym_env.action_space.n
 
