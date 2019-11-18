@@ -15,6 +15,94 @@ import pdb
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.activations import relu, linear
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import mean_squared_error
+from tensorflow.keras.models import load_model
+
+class DQNAgentKeras():
+	def __init__(self,agent_config,network_config,env):
+
+		for key in agent_config.keys():
+			setattr(self, key, agent_config[key])
+		for key in network_config.keys():
+			setattr(self, key, network_config[key])
+		self.eps = self.eps0
+
+		self.state_size = env.state_size
+		self.action_size = env.action_size
+		
+		self.model = self.initialize_model()
+
+		# Memory initialisation
+		self.prev_s=[]
+		self.prev_a=[]
+		self.memory=[]
+		self.step_count=0
+		self.ep_no=0
+
+	def initialize_model(self):
+		model = Sequential()
+		model.add(Dense(512, input_dim=self.state_size, activation=relu))
+		model.add(Dense(256, activation=relu))
+		model.add(Dense(self.action_size, activation=linear))
+
+		# Compile the model
+		model.compile(loss=mean_squared_error,optimizer=Adam(lr=self.alpha))
+		print(model.summary())
+		return model
+
+	def action_select(self,env,state):
+
+		if np.random.random(1)<self.eps:
+			action=env.rand_action()
+		else:
+			q_s=self.model.predict(np.reshape(state,[1,self.state_size]))
+			action=np.argmax(q_s)
+		self.prev_s=state
+		self.prev_a=action
+		return action
+
+	def update_net(self,state,reward,done):
+
+		# Update epsilon
+		if done:
+			self.ep_no+=1
+			if self.ep_no<self.n_eps:
+				self.eps=float(self.eps0)-self.ep_no*(float(self.eps0)-float(self.epsf))/float(self.n_eps)
+			else:
+				self.eps=self.epsf
+
+		# Update memory
+		self.memory.append([self.prev_s,self.prev_a,reward,state,done])
+		if len(self.memory)>self.max_mem:
+			del self.memory[0]
+
+		# Select data from memory
+		if len(self.memory)>self.minib & self.minib>1:
+			sample_ind=random.sample(range(1,len(self.memory)),self.minib)
+		elif self.minib==1:
+			sample_ind=[len(self.memory)-1]
+		else:
+			sample_ind=range(len(self.memory))
+
+		# Update network
+		S1 = np.stack([self.memory[ind][0] for ind in sample_ind])
+		Sd1 = np.stack([self.memory[ind][3] for ind in sample_ind])
+		q_s1 = self.model.predict(S1)
+		q_d1 = self.model.predict(Sd1)
+		for i, ind in enumerate(sample_ind):
+			r=self.memory[ind][2]
+			a=self.memory[ind][1]
+			if self.memory[ind][4]:
+				q_s1[i][a] = r
+			else:
+				q_s1[i][a] = r + self.gamma*np.amax(q_d1[i])
+		self.model.fit(S1,q_s1, epochs=1,verbose=0)
+            
+
 class DQNAgentDemo():
 	def __init__(self,agent_config,network_config,env,demo_transitions):
 
