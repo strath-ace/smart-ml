@@ -40,7 +40,7 @@ class QNetAgent():
 		# Updating
 		self.nextQ = tf.placeholder(shape=[None,self.action_size],dtype=tf.float32)
 		loss = tf.reduce_sum(tf.square(self.nextQ - self.Q_est))
-		trainer = tf.compat.v1.train.GradientDescentOptimizer(self.alpha)
+		trainer = tf.compat.v1.train.RMSPropOptimizer(self.alpha)
 		if isinstance(self.clip_norm, float):
 			grads = trainer.compute_gradients(loss,[self.W,self.w_in,self.b_in])
 			cap_grads = [(tf.clip_by_norm(grad, self.clip_norm), var) for grad, var in grads]
