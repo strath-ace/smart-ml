@@ -7,11 +7,13 @@
 
 from networks import ELMNet, QNet
 from random import sample as _sample
+import numpy as np
+import numpy.random as rand
 
 
 class ReplayMemory(list):
-	def __init__(self,*args,memory_size=None):
-		list.__init__(self,[args])
+	def __init__(self,memory_size=None,**kwargs):
+		list.__init__(self,[])
 		self.max_len = memory_size
 	def add(self, list_add):
 		self.append(list_add)
@@ -19,7 +21,7 @@ class ReplayMemory(list):
 			while len(self)>self.max_len:
 				self.remove(self[0])
 	def sample(self, n):
-		return _sample(self,n,False)
+		return _sample(self,n)
 
 
 class EQLMAgent():
@@ -29,14 +31,13 @@ class EQLMAgent():
 		self.network = ELMNet(self.state_size, self.action_size,**kwargs)
 		self.memory = ReplayMemory(**kwargs)
 		
-		self.eps = self.eps0
+		self.eps = eps0
 		self.prev_s=[]
 		self.prev_a=[]
-		self.memory=[]
 	
 	def action_select(self,state):
-		if np.random.random(1)<self.eps:
-			action=env.rand_action()
+		if rand.random(1)<self.eps:
+			action=rand.randint(self.action_size)
 		else:
 			q_s=self.network.Q_predict(state)
 			action=np.argmax(q_s)
@@ -51,42 +52,32 @@ class EQLMAgent():
 				self.eps=float(self.eps0)-self.ep_no*(float(self.eps0)-float(self.epsf))/float(self.n_eps)
 			else:
 				self.eps=self.epsf
-# 			# Update memory (terminal state)
-# 			with self.sess.as_default():
-# 				self.memory.append([self.act.eval(feed_dict={self.state_input:self.prev_s.reshape(1,-1)}).tolist(),
-# 					self.prev_a,reward,
-# 					[]])
-# 		else:
-# 			# Update memory (non-terminal state)
-# 			with self.sess.as_default():
-# 				self.memory.append([self.act.eval(feed_dict={self.state_input:self.prev_s.reshape(1,-1)}).tolist(),
-# 					self.prev_a,reward,
-# 					self.act.eval(feed_dict={self.state_input:state.reshape(1,-1)}).tolist()])
+		# Update memory
+		if self.network.prep_state is not None:
+			s_prep = self.network.sess.run(self.network.prep_state,
+										   feed_dict={self.network.s_input:np.concatenate([self.prev_s,state])})
+			self.memory.add([s_prep[0],self.prev_a,reward,s_prep[1],done])
+		else:
+			self.memory.add([self.prev_s,self.prev_a,reward,state,done])
+			
+		if len(self.memory)>=self.network.k:
+			D_update = self.memory.sample(self.network.k)
+		else:
+			return
+		
+		H = np.stack([d[0] for d in D_update])
+		# vectorise updates...
+		
 
-# 		if len(self.memory)>self.max_mem:
-# 			del self.memory[0]
-
-# 		# Select data from memory
-# 		if len(self.memory)>self.minib & self.minib>1:
-# 			sample_ind=random.sample(range(1,len(self.memory)),self.minib)
-# 		elif self.minib==1:
-# 			sample_ind=[len(self.memory)-1]
-# 		else:
-# 			return
-
-# 		# Create matrices of pre-processed states and targets
-# 		H_update=[]
-# 		q_target=[]
-# 		with self.sess.as_default():
-# 			for ind in sample_ind:
-# 				h=self.memory[ind][0]
+# # 		with self.sess.as_default():
+# 			H = np.stack([self.memory[ind][0] for ind in sample_ind])
+# 			Sd = np.stack([self.memory[ind][3] for ind in sample_ind])
+# 			Q = self.Qt.eval({self.act:H})
+# 			Qd = self.Qt.eval({self.state_input:Sd})
+# 			for i, ind in enumerate(sample_ind):
 # 				r=self.memory[ind][2]
 # 				a=self.memory[ind][1]
-# 				q_s=self.Qt.eval(feed_dict={self.act:h})
-# 				if len(self.memory[ind][3])>0:
-# 					q_dash=self.Qt.eval({self.act:self.memory[ind][3]})
-# 					q_s[0][a]=r+self.gamma*np.amax(q_dash)
+# 				if self.memory[ind][4]:
+# 					Q[i][a] = r
 # 				else:
-# 					q_s[0][a]=r
-# 				H_update+=h
-# 				q_target+=q_s.reshape(1,-1).tolist()
+# 					Q[i][a] = r + self.gamma*np.amax(Qd[i])
