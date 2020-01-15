@@ -31,9 +31,15 @@ class EQLMAgent():
 		self.network = ELMNet(self.state_size, self.action_size,**kwargs)
 		self.memory = ReplayMemory(**kwargs)
 		
+		self.gamma = gamma
 		self.eps = eps0
-		self.prev_s=[]
-		self.prev_a=[]
+		self.eps0 = eps0
+		self.epsf = epsf
+		self.n_eps = n_eps
+		
+		self.prev_s = []
+		self.prev_a = []
+		self.ep_no = 0
 	
 	def action_select(self,state):
 		if rand.random(1)<self.eps:
@@ -65,19 +71,18 @@ class EQLMAgent():
 		else:
 			return
 		
-		H = np.stack([d[0] for d in D_update])
-		# vectorise updates...
+		s = np.stack([d[0] for d in D_update])
+		a = np.array([d[1] for d in D_update])
+		r = np.array([d[2] for d in D_update])
+		Sd = np.stack([d[3] for d in D_update])
+		St = np.array([d[4] for d in D_update])
+		indt = np.where(St)[0]
+		if self.network.prep_state is not None:
+			Q = self.network.Q_predict_prep(s)
+		else:
+			Q = self.network.Q_predict(s)
+		Qd = self.network.Q_target(Sd[St])
+		Q[np.arange(Q.shape[0]),a] = r
+		Q[indt,a[indt]] += self.gamma*np.max(Qd,1)
+		self.network.update(s,Q)
 		
-
-# # 		with self.sess.as_default():
-# 			H = np.stack([self.memory[ind][0] for ind in sample_ind])
-# 			Sd = np.stack([self.memory[ind][3] for ind in sample_ind])
-# 			Q = self.Qt.eval({self.act:H})
-# 			Qd = self.Qt.eval({self.state_input:Sd})
-# 			for i, ind in enumerate(sample_ind):
-# 				r=self.memory[ind][2]
-# 				a=self.memory[ind][1]
-# 				if self.memory[ind][4]:
-# 					Q[i][a] = r
-# 				else:
-# 					Q[i][a] = r + self.gamma*np.amax(Qd[i])

@@ -69,13 +69,17 @@ class ELMNet():
 		self.sess.run(self.Wt_assign)
 		
 		self.step_count = 0
+		self.C = update_steps
 		self.first = True
 		
 	def Q_predict(self, s):
 		return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+	
+	def Q_predict_prep(self, H):
+		return self.sess.run(self.Q_est,feed_dict={self.act:H})
 
 	def Q_target(self, H):
-		return self.sess.run(self.Qt,feed_dict={self.H:H})
+		return self.sess.run(self.Qt,feed_dict={self.act:H})
 
 	def update(self, H, T):
 		if self.first:
@@ -87,7 +91,7 @@ class ELMNet():
 			self.sess.run(self.A_update,feed_dict={self.H:H})
 
 		self.step_count += 1
-		if self.step_count >= self.update_steps:
+		if self.step_count >= self.C:
 			self.sess.run(self.Wt_assign)
 			self.step_count=0
 	
