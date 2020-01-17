@@ -82,7 +82,7 @@ class QAgent():
 		a = np.array([d[1] for d in D_update])
 		r = np.array([d[2] for d in D_update])
 		Sd = np.stack([d[3] for d in D_update])
-		St = np.array([d[4] for d in D_update])
+		St = np.invert(np.array([d[4] for d in D_update]))
 		indt = np.where(St)[0]
 		if self.nn.prep_state is not None:
 			Q = self.nn.Q_predict_prep(s)
