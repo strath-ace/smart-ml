@@ -16,7 +16,7 @@ class ELMNet():
 	def __init__(self, state_size, action_size,
 				N_hid=None, gamma_reg=0.001, activation_function='tanh', update_steps=50, 
 				w_init_magnitude=1.0, b_init_magnitude=0.0, minibatch_size=5, 
-				 prep_state=True,**kwargs):
+				 prep_state=True, is_target=False, **kwargs):
 		"""
 		A network which uses updates based on sequential regularised ELM
 		"""
@@ -32,10 +32,17 @@ class ELMNet():
 			act_fn = tf.tanh
 		self.act = act_fn(tf.add(tf.matmul(self.s_input,self.w_in),self.b_in))
 		self.Q_est = tf.matmul(self.act,self.W)
+		self.prep_state = self.act if prep_state else None
+		
+		self.params = ['W', 'w_in', 'b_in']
+		self.target=is_target
+		if self.target:
+			self.sess = tf.Session()
+			self.sess.run(tf.global_variables_initializer())
+			return
 		
 		# Matrices for updating
 		self.k = minibatch_size
-		self.prep_state = self.act if prep_state else None
 		self.H = tf.placeholder(shape=[self.k,N_hid],dtype=tf.float32)
 		self.T = tf.placeholder(shape=[self.k,action_size],dtype=tf.float32)
 		self.H_trans = tf.transpose(self.H)
@@ -57,31 +64,32 @@ class ELMNet():
 		A_new = tf.matmul(K_t,self.A_inv)
 		self.W_update = self.W.assign(W_new)
 		self.A_update = self.A_inv.assign(A_new)
-
-		# Target network update
-		self.Wt = tf.Variable(tf.random_uniform([N_hid,action_size],0,1))
-		self.Qt = tf.matmul(self.act,self.Wt)
-		self.Wt_assign = self.Wt.assign(self.W)
 		
 		# Start tensorflow session
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
-		self.sess.run(self.Wt_assign)
-		
-		self.step_count = 0
-		self.C = update_steps
+
 		self.first = True
 		
-	def Q_predict(self, s):
-		return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
-	
-	def Q_predict_prep(self, H):
-		return self.sess.run(self.Q_est,feed_dict={self.act:H})
-
-	def Q_target(self, H):
-		return self.sess.run(self.Qt,feed_dict={self.act:H})
+	def assign_params(self,p_new):
+		p_assign = [p for p in p_new if p in self.params]
+		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
+		
+	def get_params(self):
+		p_list = self.sess.run([getattr(self,p) for p in self.params])
+		return dict(zip(self.params,p_list))
+		
+	def Q_predict(self, s=None, s_prep=None):
+		if s is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+		elif s_prep is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.prep_state:s_prep})
+		else:
+			return []
 
 	def update(self, H, T):
+		if self.target:
+			return
 		if self.first:
 			self.sess.run(self.W_init,feed_dict={self.H:H,self.T:T})
 			self.sess.run(self.A_init,feed_dict={self.H:H})
@@ -90,15 +98,12 @@ class ELMNet():
 			self.sess.run(self.W_update,feed_dict={self.H:H,self.T:T})
 			self.sess.run(self.A_update,feed_dict={self.H:H})
 
-		self.step_count += 1
-		if self.step_count >= self.C:
-			self.sess.run(self.Wt_assign)
-			self.step_count=0
 	
 class QNet():
 	def __init__(self, state_size, action_size,
 				N_hid=None, alpha=0.01, activation_function='tanh', update_steps=50, clip_norm=None,
-				W_init_magnitude=1.0, w_init_magnitude=1.0, b_init_magnitude=0.0, minibatch_size=5, **kwargs):
+				W_init_magnitude=1.0, w_init_magnitude=1.0, b_init_magnitude=0.0, minibatch_size=5, 
+				 is_target=False, **kwargs):
 		"""
 		A network which uses gradient-based updates
 		"""
@@ -114,9 +119,16 @@ class QNet():
 			act_fn = tf.tanh
 		self.act = act_fn(tf.add(tf.matmul(self.s_input,self.w_in),self.b_in))
 		self.Q_est = tf.matmul(self.act,self.W)
+		self.prep_state = None
+		
+		self.params = ['W', 'w_in', 'b_in']
+		self.target=is_target
+		if self.target:
+			self.sess = tf.Session()
+			self.sess.run(tf.global_variables_initializer())
+			return
 		
 		# Update rules
-		self.prep_state = None
 		self.k = minibatch_size
 		self.nextQ = tf.placeholder(shape=[None,action_size],dtype=tf.float32)
 		loss = tf.reduce_sum(tf.square(self.nextQ - self.Q_est))
@@ -127,40 +139,30 @@ class QNet():
 			self.updateModel = trainer.apply_gradients(cap_grads)
 		else:
 			self.updateModel = trainer.minimize(loss,var_list=[self.W,self.w_in,self.b_in])
-
-		# Target network
-		self.wt = tf.Variable(tf.random_uniform([state_size,N_hid],0,0.1))
-		self.bt = tf.Variable(tf.random_uniform([1,N_hid],0,0))
-		self.Wt = tf.Variable(tf.random_uniform([N_hid,action_size],0,0.1))
-		self.actt = act_fn(tf.add(tf.matmul(self.s_input,self.wt),self.bt))
-		self.Qt = tf.matmul(self.actt,self.Wt)
-		
-		self.wt_assign = self.wt.assign(self.w_in)
-		self.bt_assign = self.bt.assign(self.b_in)
-		self.Wt_assign = self.Wt.assign(self.W)
 		
 		# Start tensorflow session
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
-		self.sess.run([self.Wt_assign, self.wt_assign, self.bt_assign])
 		
-		self.step_count = 0
-		self.C = update_steps
+	def assign_params(self,p_new):
+		p_assign = [p for p in p_new if p in self.params]
+		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
 		
-	def Q_predict(self, s):
-		return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
-
-	def Q_target(self, s):
-		return self.sess.run(self.Qt,feed_dict={self.s_input:s})
+	def get_params(self):
+		p_list = self.sess.run([getattr(self,p) for p in self.params])
+		return dict(zip(self.params,p_list))
+		
+	def Q_predict(self, s=None, s_prep=None):
+		if s is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+		elif s_prep is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.prep_state:s_prep})
+		else:
+			return []
 
 	def update(self, S, Q):
-		self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})
-
-		# Update target network
-		self.step_count += 1
-		if self.step_count>=self.C:
-			self.sess.run([self.Wt_assign, self.wt_assign, self.bt_assign])
-			self.step_count=0
+		if not self.target:
+			self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})
 			
 class MLPQNet():
 	def __init__(self, state_size, action_size,
@@ -228,8 +230,13 @@ class MLPQNet():
 		self.step_count = 0
 		self.C = update_steps
 		
-	def Q_predict(self, s):
-		return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+	def Q_predict(self, s=None, s_prep=None):
+		if s is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+		elif s_prep is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.prep_state:s_prep})
+		else:
+			return []
 
 	def Q_target(self, s):
 		return self.sess.run(self.Qt,feed_dict={self.s_input:s})
