@@ -26,7 +26,7 @@ class ReplayMemory(list):
 
 
 class QAgent():
-	def __init__(self,env,net_type='QNet',gamma=0.99,eps0=0.9,epsf=0.0,n_eps=400,**kwargs):
+	def __init__(self,env,net_type='ELMNet',gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
 		self.state_size = env.state_size
 		self.action_size=env.action_size
 		try:
@@ -35,21 +35,26 @@ class QAgent():
 			raise ValueError('Invalid network type: \'{}\''.format(net_type))
 
 		self.nn = net_module(self.state_size, self.action_size,**kwargs)
+		self.nn_target = net_module(self.state_size, self.action_size,**kwargs)
 
 		self.memory = ReplayMemory(**kwargs)
-
+		
 		self.gamma = gamma
 		self.eps = eps0
 		self.eps0 = eps0
 		self.epsf = epsf
 		self.n_eps = n_eps
-
+		
 		self.prev_s = []
 		self.prev_a = []
 		self.ep_no = 0
-
+		self.step_count = 0
+		self.C = update_steps
+	
 	def action_select(self,state):
-		if rand.random(1)<self.eps:
+		if self.ep_no<10:
+			action = np.mod(self.step_count,2)
+		elif rand.random(1)<self.eps:
 			action=rand.randint(self.action_size)
 		else:
 			q_s=self.nn.Q_predict(state)
@@ -57,7 +62,7 @@ class QAgent():
 		self.prev_s=state
 		self.prev_a=action
 		return action
-
+	
 	def update(self,state,reward,done):
 		if done:
 			self.ep_no+=1
@@ -72,26 +77,32 @@ class QAgent():
 			self.memory.add([s_prep[0],self.prev_a,reward,s_prep[1],done])
 		else:
 			self.memory.add([self.prev_s.reshape(-1),self.prev_a,reward,state.reshape(-1),done])
-
+			
 		if len(self.memory)>=self.nn.k:
 			D_update = self.memory.sample(self.nn.k)
 		else:
 			return
-
-		s = np.stack([d[0] for d in D_update])
-		a = np.array([d[1] for d in D_update])
-		r = np.array([d[2] for d in D_update])
-		Sd = np.stack([d[3] for d in D_update])
-		St = np.invert(np.array([d[4] for d in D_update]))
+		
+		s, a, r, Sd, St = (np.stack([d[0] for d in D_update]),
+						   np.array([d[1] for d in D_update]),
+						   np.array([d[2] for d in D_update]),
+						   np.stack([d[3] for d in D_update]),
+						   np.invert(np.array([d[4] for d in D_update])))
 		indt = np.where(St)[0]
 		if self.nn.prep_state is not None:
-			Q = self.nn.Q_predict_prep(s)
+			Q = self.nn.Q_predict(s_prep=s)
+			Qd = self.nn_target.Q_predict(s_prep=Sd[St])
 		else:
-			Q = self.nn.Q_predict(s)
-		Qd = self.nn.Q_target(Sd[St])
+			Q = self.nn.Q_predict(s=s)
+			Qd = self.nn_target.Q_predict(s=Sd[St])
 		Q[np.arange(Q.shape[0]),a] = r
 		Q[indt,a[indt]] += self.gamma*np.max(Qd,1)
 		self.nn.update(s,Q)
+		
+		self.step_count+=1
+		if self.step_count >= self.C:
+			self.nn_target.assign_params(self.nn.get_params())
+			self.step_count=0
 
 
 class HeuristicAgent():
