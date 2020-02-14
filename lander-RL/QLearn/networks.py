@@ -10,6 +10,8 @@ try:
 	tf.disable_v2_behavior()
 except ImportError:
 	import tensorflow as tf
+	
+import pdb
 
 			
 class QNet():
@@ -80,16 +82,18 @@ class QNet():
 			
 class MLPQNet():
 	def __init__(self, state_size, action_size,
-				N_hid=[20, 10], alpha=0.01, activation_function='tanh', update_steps=50, clip_norm=None,
-				W_init_magnitude=0.1, w_init_magnitude=0.1, b_init_magnitude=0.0, minibatch_size=10, **kwargs):
+				hidden_layers=[20, 10], alpha=0.01, activation_function='tanh', update_steps=50, clip_norm=None,
+				W_init_magnitude=0.1, w_init_magnitude=0.1, b_init_magnitude=0.0, minibatch_size=10,
+				 is_target=False, **kwargs):
 		"""
 		A multi-layer feedforward network which uses gradient-based updates
 		"""
 		# build network
-		self.n_layer = len(N_hid)
+		self.n_layer = len(hidden_layers)
 		self.s_input = tf.placeholder(shape=[None,state_size],dtype=tf.float32)
 		self.w = []
 		self.b = []
+		N_hid = hidden_layers.copy()
 		N_hid.insert(0,state_size)
 		for i in range(self.n_layer):
 			self.w.append(tf.Variable(tf.random_uniform([N_hid[i],N_hid[i+1]],0,w_init_magnitude)))
@@ -106,6 +110,14 @@ class MLPQNet():
 		self.Q_est = tf.matmul(self.layers[-1],self.W)
 		self.var_list = self.w + self.b + [self.W]
 		
+		self.params = ['W', 'w', 'b']
+		self.p_dict = {'W':self.W, 'w':self.w, 'b':self.b}
+		self.target=is_target
+		if self.target:
+			self.sess = tf.Session()
+			self.sess.run(tf.global_variables_initializer())
+			return
+		
 		# Update rules
 		self.prep_state = None
 		self.k = minibatch_size
@@ -119,42 +131,31 @@ class MLPQNet():
 		else:
 			self.updateModel = trainer.minimize(loss,var_list=self.var_list)
 
-		# Target network
-		self.wt = []
-		self.bt = []
-		for i in range(self.n_layer):
-			self.wt.append(tf.Variable(tf.random_uniform([N_hid[i],N_hid[i+1]],0,1)))
-			self.bt.append(tf.Variable(tf.random_uniform([1,N_hid[i+1]],0,1)))
-		self.Wt = tf.Variable(tf.random_uniform([N_hid[-1],action_size],0,1))
-		self.layers_t = [self.s_input]
-		for w, b in zip(self.wt,self.bt):
-			self.layers_t.append(act_fn(tf.add(tf.matmul(self.layers_t[-1],w),b)))
-		self.Qt = tf.matmul(self.layers_t[-1],self.Wt)
-		
-		self.wt_assign = [self.wt[i].assign(self.w[i]) for i in range(self.n_layer)]
-		self.bt_assign = [self.bt[i].assign(self.b[i]) for i in range(self.n_layer)]
-		self.Wt_assign = self.Wt.assign(self.W)
-		self.update_target = self.wt_assign + self.bt_assign + [self.Wt_assign]
-		
 		# Start tensorflow session
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
-		self.sess.run(self.update_target)
-		
-		self.step_count = 0
-		self.C = update_steps
-		
-	def Q_predict(self, s):
-		return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
-
-	def Q_target(self, s):
-		return self.sess.run(self.Qt,feed_dict={self.s_input:s})
 
 	def update(self, S, Q):
 		self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})
 
-		# Update target network
-		self.step_count += 1
-		if self.step_count>=self.C:
-			self.sess.run(self.update_target)
-			self.step_count=0
+	def assign_params(self,p_new):
+		p_list = [p for p in p_new if p in self.params and p is not 'W']
+		p_assign_op = [self.W.assign(p_new['W'])]
+		for p in p_list:
+			p_assign_op += [getattr(self,p)[i].assign(p_assign) for i, p_assign in enumerate(p_new[p])]
+		self.sess.run(p_assign_op)
+		
+	def get_params(self):
+		return self.sess.run(self.p_dict)
+		
+	def Q_predict(self, s=None, s_prep=None):
+		if s is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+		elif s_prep is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.prep_state:s_prep})
+		else:
+			return []
+
+	def update(self, S, Q):
+		if not self.target:
+			self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})

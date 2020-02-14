@@ -5,7 +5,7 @@
 # ---------------------- Author: Callum Wilson ------------------------
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
-from . import networks
+import networks
 from random import sample as _sample
 import numpy as np
 import numpy.random as rand
@@ -35,7 +35,7 @@ class QAgent():
 			raise ValueError('Invalid network type: \'{}\''.format(net_type))
 
 		self.nn = net_module(self.state_size, self.action_size,**kwargs)
-		self.nn_target = net_module(self.state_size, self.action_size,**kwargs)
+		self.nn_target = net_module(self.state_size, self.action_size,is_target=True,**kwargs)
 
 		self.memory = ReplayMemory(**kwargs)
 		
@@ -52,9 +52,7 @@ class QAgent():
 		self.C = update_steps
 	
 	def action_select(self,state):
-		if self.ep_no<10:
-			action = np.mod(self.step_count,2)
-		elif rand.random(1)<self.eps:
+		if rand.random(1)<self.eps:
 			action=rand.randint(self.action_size)
 		else:
 			q_s=self.nn.Q_predict(state)
@@ -173,9 +171,9 @@ class HeuristicAgent():
 		St = np.invert(np.array([d[4] for d in D_update]))
 		indt = np.where(St)[0]
 		if self.nn.prep_state is not None:
-			Q = self.nn.Q_predict_prep(s)
+			Q = self.nn.Q_predict(s_prep=s)
 		else:
-			Q = self.nn.Q_predict(s)
+			Q = self.nn.Q_predict(s=s)
 		Qd = self.nn.Q_target(Sd[St])
 		Q[np.arange(Q.shape[0]),a] = r
 		Q[indt,a[indt]] += self.gamma*np.max(Qd,1)

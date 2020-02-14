@@ -164,7 +164,7 @@ class DQNAgentDemo():
 
 		if isinstance(self.clip_norm, float):
 			grads = trainer.compute_gradients(loss)
-			cap_grads = [(tf.clip_by_norm(grad, self.clip_norm), var) for grad, var in grads]
+			cap_grads = [(tf.clip_by_norm(grad, self.clip_norm), var) if grad is not None else (grad, var) for grad, var in grads]
 			self.updateModel = trainer.apply_gradients(cap_grads)
 		else:
 			self.updateModel = trainer.minimize(loss)
