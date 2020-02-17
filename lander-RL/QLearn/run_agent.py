@@ -6,8 +6,8 @@
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
 import numpy as np
-from q_agents import QAgent
-from environment import Environment
+from .q_agents import QAgent
+from .environment import Environment
 from tqdm import trange
 import pickle
 import gc
@@ -50,18 +50,33 @@ def do_run(agent, env, N_ep, save_name=None):
 	return R_ep, agent, env
 
 def agent_demo(agent, env, N_ep):
-    R_ep = Reward()
-    for ep_no in range(N_ep):
-        s = env.reset()
-        done = False
-        Rt = 0
-        while not done:
-            a = agent.action_select(s)
-            s, r, done, _ = env.step(a)
-            env.render()
-            Rt += r
-        R_ep.append(Rt)
-    return R_ep
+	R_ep = Reward()
+	for ep_no in range(N_ep):
+		s = env.reset()
+		done = False
+		Rt = 0
+		while not done:
+			a = agent.action_select(s)
+			s, r, done, _ = env.step(a)
+			env.render()
+			Rt += r
+		R_ep.append(Rt)
+	return R_ep
+
+def heuristic_demo(H, env, N_ep, show=False):
+	R_ep = Reward()
+	for ep_no in range(N_ep):
+		s = env.reset()
+		done = False
+		Rt = 0
+		while not done:
+			a = H(s[0])
+			s, r, done, _ = env.step(a)
+			if show:
+				env.render()
+			Rt += r
+		R_ep.append(Rt)
+	return R_ep
 
 if __name__ == '__main__':
 	gc.enable()

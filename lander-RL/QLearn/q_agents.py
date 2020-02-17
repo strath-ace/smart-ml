@@ -5,7 +5,7 @@
 # ---------------------- Author: Callum Wilson ------------------------
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
-import networks
+from .networks import *
 from random import sample as _sample
 import numpy as np
 import numpy.random as rand
