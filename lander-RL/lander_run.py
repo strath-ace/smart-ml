@@ -13,7 +13,7 @@ import gc
 
 if __name__ == '__main__':
 	gc.enable()
-	for run_no in range(5):
+	for run_no in range(10):
 		env = Environment("gym_MarsLander:MarsLander-v0")
 		agent = QAgent(env,net_type='MLPQNet',hidden_layers=[80, 40],memory_size=50000,minibatch_size=20,alpha=0.005,clip_norm=1.0,eps0=0.9, n_eps=2000)
 		R, _, _ = do_run(agent, env, 2500, save_name = 'data{}_18_2.pkl'.format(run_no))

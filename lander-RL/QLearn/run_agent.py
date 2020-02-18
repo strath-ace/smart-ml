@@ -6,11 +6,8 @@
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
 import numpy as np
-from .q_agents import QAgent
-from .environment import Environment
 from tqdm import trange
 import pickle
-import gc
 import pdb
 
 class Reward(list):
@@ -77,11 +74,3 @@ def heuristic_demo(H, env, N_ep, show=False):
 			Rt += r
 		R_ep.append(Rt)
 	return R_ep
-
-if __name__ == '__main__':
-	gc.enable()
-	for run_no in range(5):
-		env = Environment("gym_MarsLander:MarsLander-v0")
-		agent = QAgent(env,net_type='MLPQNet',hidden_layers=[80, 40],memory_size=50000,minibatch_size=20,alpha=0.005,clip_norm=1.0,eps0=0.7, n_eps=1000)
-		R, _, _ = do_run(agent, env, 1200, save_name = 'data{}_14_2.pkl'.format(run_no))
-	gc.disable()

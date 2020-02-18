@@ -112,6 +112,14 @@ class MLPQNet():
 		
 		self.params = ['W', 'w', 'b']
 		self.p_dict = {'W':self.W, 'w':self.w, 'b':self.b}
+		self.new_params = {'W':tf.placeholder(shape=[None,None],dtype=tf.float32)}
+		self.new_params['w'] = [tf.placeholder(shape=[None,None],dtype=tf.float32) for _ in self.w]
+		self.new_params['b'] = [tf.placeholder(shape=[None,None],dtype=tf.float32) for _ in self.b]
+		
+		self.p_assign = [self.W.assign(self.new_params['W'])]
+		self.p_assign += [w.assign(self.new_params['w'][i]) for i, w in enumerate(self.w)]
+		self.p_assign += [b.assign(self.new_params['b'][i]) for i, b in enumerate(self.b)]
+		
 		self.target=is_target
 		if self.target:
 			self.sess = tf.Session()
@@ -139,11 +147,11 @@ class MLPQNet():
 		self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})
 
 	def assign_params(self,p_new):
-		p_list = [p for p in p_new if p in self.params and p is not 'W']
-		p_assign_op = [self.W.assign(p_new['W'])]
-		for p in p_list:
-			p_assign_op += [getattr(self,p)[i].assign(p_assign) for i, p_assign in enumerate(p_new[p])]
-		self.sess.run(p_assign_op)
+		p_assign_dict = {self.new_params['W']:p_new['W']}
+		for n in range(self.n_layer):
+			p_assign_dict[self.new_params['w'][n]] = p_new['w'][n]
+			p_assign_dict[self.new_params['b'][n]] = p_new['b'][n]
+		self.sess.run(self.p_assign, feed_dict=p_assign_dict)
 		
 	def get_params(self):
 		return self.sess.run(self.p_dict)

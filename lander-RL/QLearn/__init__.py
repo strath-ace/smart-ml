@@ -5,10 +5,7 @@
 # ---------------------- Author: Callum Wilson ------------------------
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
-try:
-	import tensorflow.compat.v1 as tf
-	tf.disable_v2_behavior()
-except ImportError:
-	import tensorflow as tf
-	
-import numpy as np
+from .q_agents import *
+from .networks import *
+from .environment import *
+from .run_agent import *
