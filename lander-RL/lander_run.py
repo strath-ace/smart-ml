@@ -6,7 +6,7 @@
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
 import numpy as np
-from QLearn.q_agents import QAgent
+from QLearn.q_agents import QAgent, HeuristicAgent
 from QLearn.environment import Environment
 from QLearn.run_agent import *
 import gc
