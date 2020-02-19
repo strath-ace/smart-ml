@@ -104,9 +104,10 @@ class QAgent():
 
 
 class HeuristicAgent():
-	def __init__(self,env,f_heur,net_type='QNet',gamma=0.99,eps0=0.9,epsf=0.0,n_eps=400,N_heur=10,**kwargs):
+	def __init__(self,env,f_heur,net_type='QNet',gamma=0.99,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,
+				 xi0=1.0,xif=0.0,n_xi=400,eta=0.1,**kwargs):
 		"""
-		Same as the QAgent and uses a heuristic for initial episodes
+		Same as the QAgent with heuristic action selection guidance
 		"""
 		self.state_size = env.state_size
 		self.action_size = env.action_size
@@ -117,6 +118,7 @@ class HeuristicAgent():
 			raise ValueError('Invalid network type: \'{}\''.format(net_type))
 
 		self.nn = net_module(self.state_size, self.action_size,**kwargs)
+		self.nn_target = net_module(self.state_size, self.action_size,is_target=True,**kwargs)
 
 		self.memory = ReplayMemory(**kwargs)
 
@@ -125,20 +127,27 @@ class HeuristicAgent():
 		self.eps0 = eps0
 		self.epsf = epsf
 		self.n_eps = n_eps
-		self.N_heur = N_heur
+		
 		self.f_heur = f_heur
+		self.xi = xi0
+		self.xi0 = xi0
+		self.xif = xif
+		self.n_xi = n_xi
+		self.eta = eta
 
 		self.prev_s = []
 		self.prev_a = []
 		self.ep_no = 0
+		self.step_count = 0
+		self.C = update_steps
 
 	def action_select(self,state):
-		if self.ep_no<self.N_heur:
-			action=self.f_heur(state[0])
-		elif rand.random(1)<self.eps:
+		if rand.random(1)<self.eps:
 			action=rand.randint(self.action_size)
 		else:
 			q_s=self.nn.Q_predict(state)
+			a_h=self.f_heur(state[0])
+			q_s[0,a_h]+=(np.max(q_s)-q_s[0,a_h]+self.eta)*self.xi
 			action=np.argmax(q_s)
 		self.prev_s=state
 		self.prev_a=action
@@ -151,6 +160,10 @@ class HeuristicAgent():
 				self.eps=float(self.eps0)-self.ep_no*(float(self.eps0)-float(self.epsf))/float(self.n_eps)
 			else:
 				self.eps=self.epsf
+			if self.ep_no<self.n_xi:
+				self.xi=float(self.xi0)-self.ep_no*(float(self.xi0)-float(self.xif))/float(self.n_xi)
+			else:
+				self.xi=self.xif
 		# Update memory
 		if self.nn.prep_state is not None:
 			s_prep = self.nn.sess.run(self.nn.prep_state,
@@ -172,9 +185,15 @@ class HeuristicAgent():
 		indt = np.where(St)[0]
 		if self.nn.prep_state is not None:
 			Q = self.nn.Q_predict(s_prep=s)
+			Qd = self.nn_target.Q_predict(s_prep=Sd[St])
 		else:
 			Q = self.nn.Q_predict(s=s)
-		Qd = self.nn.Q_target(Sd[St])
+			Qd = self.nn_target.Q_predict(s=Sd[St])
 		Q[np.arange(Q.shape[0]),a] = r
 		Q[indt,a[indt]] += self.gamma*np.max(Qd,1)
 		self.nn.update(s,Q)
+		
+		self.step_count+=1
+		if self.step_count >= self.C:
+			self.nn_target.assign_params(self.nn.get_params())
+			self.step_count=0
