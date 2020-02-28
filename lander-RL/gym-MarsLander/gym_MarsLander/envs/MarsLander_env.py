@@ -79,7 +79,7 @@ class MarsLanderEnv(gym.Env, EzPickle):
 
 	continuous = False
 
-	def __init__(self, step_max=5000, env_params=None):
+	def __init__(self, step_max=2000, env_params=None):
 		EzPickle.__init__(self)
 		self.seed()
 		self.viewer = None
