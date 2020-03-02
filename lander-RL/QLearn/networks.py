@@ -128,7 +128,7 @@ class MLPQNet():
 		
 		# Update rules
 		self.prep_state = None
-		self.k = minibatch_size
+		self.k = int(minibatch_size)
 		self.nextQ = tf.placeholder(shape=[None,action_size],dtype=tf.float32)
 		loss = tf.reduce_sum(tf.square(self.nextQ - self.Q_est))
 		trainer = tf.train.RMSPropOptimizer(alpha)
