@@ -28,10 +28,21 @@ def do_opt_run(run_no, **kwargs):
 	env = Environment("gym_MarsLander:MarsLander-v0")
 	N_layer = [int(kwargs['N_hid1']), int(kwargs['N_hid2'])]
 	agent = HeuristicAgent(env,heuristic,hidden_layers=N_layer,**kwargs)
-	R, _, _ = do_run(agent,env,2000)
-	print('Run {} mean value {}'.format(run_no, np.mean(R[-100:])))
-	R_out = np.array(R)
-	return R_out.tolist()
+
+	N_ep = 2000
+	R_ep = []
+	for ep_no in range(N_ep):
+		s = env.reset()
+		done = False
+		Rt = 0
+		while not done:
+			a = agent.action_select(s)
+			s, r, done, _ = env.step(a)
+			agent.update(s,r,done)
+			Rt += r
+		R_ep.append(Rt)
+	print('Run {} mean value {}'.format(run_no, np.mean(R_ep[-100:])))
+	return R_ep
 	
 def opt_function(hyper_params):
 	global param_list
