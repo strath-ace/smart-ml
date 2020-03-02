@@ -18,10 +18,11 @@ class Reward(list):
 		R = [np.mean(self[ind-n_avg:ind]) for ind in x]
 		return x, R
 
-def do_run(agent, env, N_ep, save_name=None):
+def do_run(agent, env, N_ep, save_name=None, show_progress=False):
 	R_ep = Reward()
 	steps=[]
-	t = trange(N_ep, desc='bar_desc', leave=True)
+	if show_progress:
+		t = trange(N_ep, desc='bar_desc', leave=True)
 	for ep_no in t:
 		s = env.reset()
 		done = False
@@ -35,12 +36,13 @@ def do_run(agent, env, N_ep, save_name=None):
 			n_step +=1
 		R_ep.append(Rt)
 		steps.append(n_step)
-		if ep_no>10:
-			t.set_description('R: {} Step: {}'.format(np.mean(R_ep[-10:]).round(1),n_step))
-			t.refresh()
-		else:
-			t.set_description('R: {} Step: {}'.format(np.mean(R_ep).round(1),n_step))
-			t.refresh()
+		if show_progress:
+			if ep_no>10:
+				t.set_description('R: {} Step: {}'.format(np.mean(R_ep[-10:]).round(1),n_step))
+				t.refresh()
+			else:
+				t.set_description('R: {} Step: {}'.format(np.mean(R_ep).round(1),n_step))
+				t.refresh()
 		if save_name:
 			data = {'params':agent.nn.get_params(),'R':R_ep,'step':steps}
 			pickle.dump(data, open(save_name,'wb'))

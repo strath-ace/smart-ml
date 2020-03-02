@@ -104,7 +104,7 @@ class QAgent():
 
 
 class HeuristicAgent():
-	def __init__(self,env,f_heur,net_type='QNet',gamma=0.99,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,
+	def __init__(self,env,f_heur,net_type='MLPQNet',gamma=0.99,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,
 				 xi0=1.0,xif=0.0,n_xi=400,eta=0.1,**kwargs):
 		"""
 		Same as the QAgent with heuristic action selection guidance

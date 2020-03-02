@@ -82,7 +82,7 @@ class QNet():
 			
 class MLPQNet():
 	def __init__(self, state_size, action_size,
-				hidden_layers=[20, 10], alpha=0.01, activation_function='tanh', update_steps=50, clip_norm=None,
+				hidden_layers=[20, 10], alpha=0.01, activation_function='tanh', update_steps=50, clip_norm=1.0,
 				W_init_magnitude=0.1, w_init_magnitude=0.1, b_init_magnitude=0.0, minibatch_size=10,
 				 is_target=False, **kwargs):
 		"""
