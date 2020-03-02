@@ -26,7 +26,8 @@ import bootstrapped.stats_functions as bs_stats
 
 def do_opt_run(run_no, **kwargs):
 	env = Environment("gym_MarsLander:MarsLander-v0")
-	agent = HeuristicAgent(env,heuristic,hidden_layers=[N_hid1, N_hid2],**kwargs)
+	N_layer = [kwargs['N_hid1'], kwargs['N_hid2']]
+	agent = HeuristicAgent(env,heuristic,hidden_layers=N_layer,**kwargs)
 	R, _, _ = do_run(agent,env,2000)
 	print('Run {} mean value {}'.format(run_no, np.mean(R[-100:])))
 	R_out = np.array(R)
