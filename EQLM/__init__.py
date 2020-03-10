@@ -12,6 +12,6 @@ except ImportError:
 	import tensorflow as tf
 	
 import numpy as np
-from environment import Environment
-from networks import ELMNet, QNet
-from q_agents import QAgent
+from .environment import Environment
+from .networks import ELMNet, QNet
+from .q_agents import QAgent

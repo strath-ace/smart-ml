@@ -26,7 +26,7 @@ class ReplayMemory(list):
 
 
 class QAgent():
-	def __init__(self,env,net_type='ELMNet',gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
+	def __init__(self,env,net_type='QNet',f_heur=None,n_heur=0,gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
 		self.state_size = env.state_size
 		self.action_size=env.action_size
 		try:
@@ -44,6 +44,8 @@ class QAgent():
 		self.eps0 = eps0
 		self.epsf = epsf
 		self.n_eps = n_eps
+		self.f_heur = f_heur
+		self.n_heur = n_heur
 		
 		self.prev_s = []
 		self.prev_a = []
@@ -52,8 +54,9 @@ class QAgent():
 		self.C = update_steps
 	
 	def action_select(self,state):
-		if rand.random(1)<self.eps:
-			action=rand.randint(self.action_size)
+		if self.ep_no<self.n_heur and self.f_heur is not None:
+			action = self.f_heur(state)
+		elif rand.random(1)<self.eps:
 		else:
 			q_s=self.nn.Q_predict(state)
 			action=np.argmax(q_s)

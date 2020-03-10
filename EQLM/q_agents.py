@@ -5,7 +5,7 @@
 # ---------------------- Author: Callum Wilson ------------------------
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
-import networks
+from . import networks
 from random import sample as _sample
 import numpy as np
 import numpy.random as rand
@@ -26,7 +26,7 @@ class ReplayMemory(list):
 
 
 class QAgent():
-	def __init__(self,env,net_type='ELMNet',heur=None,gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
+	def __init__(self,env,net_type='ELMNet',heur=None,n_heur=0,gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
 		self.state_size = env.state_size
 		self.action_size=env.action_size
 		try:
@@ -45,6 +45,7 @@ class QAgent():
 		self.epsf = epsf
 		self.n_eps = n_eps
 		self.heur = heur
+		self.n_heur = n_heur
 		
 		self.prev_s = []
 		self.prev_a = []
@@ -53,7 +54,7 @@ class QAgent():
 		self.C = update_steps
 	
 	def action_select(self,state):
-		if self.ep_no<10 and self.heur is not None:
+		if self.ep_no<self.n_heur and self.heur is not None:
 			action = self.heur(state)
 		elif rand.random(1)<self.eps:
 			action=rand.randint(self.action_size)

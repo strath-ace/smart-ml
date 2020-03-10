@@ -6,8 +6,8 @@
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
 import numpy as np
-from q_agents import QAgent
-from environment import Environment
+from .q_agents import QAgent
+from .environment import Environment
 from tqdm.notebook import trange
 
 def do_run(agent, env, N_ep):

@@ -1,6 +1,7 @@
 import numpy as np
 import os,sys
 import env_lib
+import pdb
 
 
 class LanderEnvironment(object):
@@ -33,19 +34,19 @@ class LanderEnvironment(object):
 									shape_constraint=self.shape_constraint,
 									attitude_constraint=self.attitude_constraint,
 									tf_limit=120.0,print_every=10)
-		self.main_env.ic_gen = env_lib.Landing_icgen(mass_uncertainty=0.05, 
-								   g_uncertainty=(0.0,0.0), 
-								   attitude_parameterization=self.attitude_parameterization,
-								   l_offset=0.,
-								   adapt_apf_v0=True,
-								   inertia_uncertainty_diag=100.0, 
-								   inertia_uncertainty_offdiag=10.0,
-								   downrange = (0,2000 , -70, -10), 
-								   crossrange = (-1000,1000 , -30,30),  
-								   altitude = (2300,2400,-90,-70),
-								   yaw   = (-np.pi/8, np.pi/8, 0.0, 0.0) ,
-								   pitch = (np.pi/4-np.pi/8, np.pi/4+np.pi/16, -0.01, 0.01),
-								   roll  = (-np.pi/8, np.pi/8, -0.01, 0.01))
+# 		self.main_env.ic_gen = env_lib.Landing_icgen(mass_uncertainty=0.05, 
+# 								   g_uncertainty=(0.0,0.0), 
+# 								   attitude_parameterization=self.attitude_parameterization,
+# 								   l_offset=0.,
+# 								   adapt_apf_v0=True,
+# 								   inertia_uncertainty_diag=100.0, 
+# 								   inertia_uncertainty_offdiag=10.0,
+# 								   downrange = (0,2000 , -70, -10), 
+# 								   crossrange = (-1000,1000 , -30,30),  
+# 								   altitude = (2300,2400,-90,-70),
+# 								   yaw   = (-np.pi/8, np.pi/8, 0.0, 0.0) ,
+# 								   pitch = (np.pi/4-np.pi/8, np.pi/4+np.pi/16, -0.01, 0.01),
+# 								   roll  = (-np.pi/8, np.pi/8, -0.01, 0.01))
 		
 		self.state_size=12
 		self.action_size=4**2
@@ -58,12 +59,11 @@ class LanderEnvironment(object):
 		return s.reshape(1,-1)
 	
 	def step(self,a,render=False):
-		if isinstance(a,int):
-			a = int_to_bin(a)
+		a = int_to_bin(a)
 		s,r,d,info = self.main_env.step(a)
 		if render:
 			self.main_env.render()
-		return s.reshape(1,-1),r,d,info
+		return s.reshape(1,-1),np.sum(r),d,info
 		
 		
 class Logger(object):
