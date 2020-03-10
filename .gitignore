@@ -23,3 +23,5 @@ share/python-wheels/
 *.egg
 *.pkl
 MANIFEST
+
+Gaudet-Lander/AAS-18-290_6DOF_journal/
