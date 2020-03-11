@@ -36,6 +36,7 @@ class QAgent():
 
 		self.nn = net_module(self.state_size, self.action_size,**kwargs)
 		self.nn_target = net_module(self.state_size, self.action_size,is_target=True,**kwargs)
+		self.nn_target.assign_params(self.nn.get_params())
 
 		self.memory = ReplayMemory(**kwargs)
 		

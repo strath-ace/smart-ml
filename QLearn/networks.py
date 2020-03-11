@@ -201,6 +201,14 @@ class ELMNet():
 		self.prep_state = self.act if prep_state else None
 		
 		self.params = ['W', 'w_in', 'b_in']
+		self.p_dict = {'W':self.W, 'w':self.w_in, 'b':self.b_in}
+		self.new_params = {'W':tf.placeholder(shape=[None,None],dtype=tf.float32),
+						  'w':tf.placeholder(shape=[None,None],dtype=tf.float32),
+						  'b':tf.placeholder(shape=[None,None],dtype=tf.float32)}
+		self.p_assign = [self.W.assign(self.new_params['W']),
+						self.w_in.assign(self.new_params['w']),
+						self.b_in.assign(self.new_params['b'])]
+		
 		self.target=is_target
 		if self.target:
 			self.sess = tf.Session()
@@ -237,13 +245,22 @@ class ELMNet():
 
 		self.first = True
 		
-	def assign_params(self,p_new):
-		p_assign = [p for p in p_new if p in self.params]
-		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
+# 	def assign_params(self,p_new):
+# 		p_assign = [p for p in p_new if p in self.params]
+# 		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
+		
+# 	def get_params(self):
+# 		p_list = self.sess.run([getattr(self,p) for p in self.params])
+# 		return dict(zip(self.params,p_list))
+	
+	def assign_params(self,p_new):	
+		p_assign_dict = {self.new_params['W']:p_new['W'],
+						self.new_params['w']:p_new['w'],
+						self.new_params['b']:p_new['b']}
+		self.sess.run(self.p_assign, feed_dict=p_assign_dict)
 		
 	def get_params(self):
-		p_list = self.sess.run([getattr(self,p) for p in self.params])
-		return dict(zip(self.params,p_list))
+		return self.sess.run(self.p_dict)
 		
 	def Q_predict(self, s=None, s_prep=None):
 		if s is not None:
