@@ -46,25 +46,30 @@ def do_run(agent, env, N_ep, save_name=None, show_progress=False):
 		if save_name:
 			data = {'params':agent.nn.get_params(),'R':R_ep,'step':steps}
 			pickle.dump(data, open(save_name,'wb'))
-	return R_ep, agent, env
+	return R_ep, steps, agent, env
 
-def agent_demo(agent, env, N_ep):
+def agent_demo(agent, env, N_ep, show=False):
 	R_ep = Reward()
+	steps=[]
 	for ep_no in range(N_ep):
 		s = env.reset()
 		done = False
 		Rt = 0
+		n_step = 0
 		while not done:
 			a = agent.action_select(s)
 			s, r, done, _ = env.step(a)
-			env.render()
+			if show:
+				env.render()
 			Rt += r
+			n_step +=1
 		R_ep.append(Rt)
-	return R_ep
+		steps.append(n_step)
+	return R_ep, steps
 
 def heuristic_demo(H, env, N_ep, show=False):
 	R_ep = Reward()
-	for ep_no in range(N_ep):
+	for ep_no in trange(N_ep):
 		s = env.reset()
 		done = False
 		Rt = 0

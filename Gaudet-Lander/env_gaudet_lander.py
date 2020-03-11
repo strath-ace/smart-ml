@@ -13,7 +13,7 @@ class LanderEnvironment(object):
 	thruster_model = env_lib.Thruster_model()
 	glideslope_constraint = env_lib.Glideslope_constraint(gs_limit=-1.0)
 	shape_constraint = env_lib.Flat_constraint()
-	def __init__(self):
+	def __init__(self,reward_type='default'):
 		self.thruster_model.max_thrust = 5000
 		self.thruster_model.min_thrust = 1000
 		
@@ -51,6 +51,7 @@ class LanderEnvironment(object):
 		
 		self.state_size=12
 		self.action_size=4**2
+		self.r_type = reward_type
 	
 	def render(self):
 		self.main_env.render()
@@ -64,6 +65,8 @@ class LanderEnvironment(object):
 		s,r,d,info = self.main_env.step(a)
 		if render:
 			self.main_env.render()
+		if self.r_type == 'sparse':
+			r=1
 		return s.reshape(1,-1),np.sum(r),d,info
 		
 		
@@ -129,3 +132,6 @@ def int_to_bin(s,s_dim=4):
 		s_str = '0'+s_str
 	s_bin = np.array([int(s) for s in s_str])
 	return s_bin
+
+def reward_sparse(s,r,d,info):
+	return 1.
