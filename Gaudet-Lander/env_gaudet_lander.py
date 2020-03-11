@@ -47,6 +47,7 @@ class LanderEnvironment(object):
 # 								   yaw   = (-np.pi/8, np.pi/8, 0.0, 0.0) ,
 # 								   pitch = (np.pi/4-np.pi/8, np.pi/4+np.pi/16, -0.01, 0.01),
 # 								   roll  = (-np.pi/8, np.pi/8, -0.01, 0.01))
+		self.main_env.ic_gen = env_lib.Landing_icgen(attitude_parameterization=self.attitude_parameterization)
 		
 		self.state_size=12
 		self.action_size=4**2
