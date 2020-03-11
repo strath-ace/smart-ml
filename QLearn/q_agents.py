@@ -57,6 +57,7 @@ class QAgent():
 		if self.ep_no<self.n_heur and self.f_heur is not None:
 			action = self.f_heur(state)
 		elif rand.random(1)<self.eps:
+			action=rand.randint(self.action_size)
 		else:
 			q_s=self.nn.Q_predict(state)
 			action=np.argmax(q_s)

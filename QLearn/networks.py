@@ -37,6 +37,14 @@ class QNet():
 		self.prep_state = None
 		
 		self.params = ['W', 'w_in', 'b_in']
+		self.p_dict = {'W':self.W, 'w':self.w_in, 'b':self.b_in}
+		self.new_params = {'W':tf.placeholder(shape=[None,None],dtype=tf.float32),
+						  'w':tf.placeholder(shape=[None,None],dtype=tf.float32),
+						  'b':tf.placeholder(shape=[None,None],dtype=tf.float32)}
+		self.p_assign = [self.W.assign(self.new_params['W']),
+						self.w_in.assign(self.new_params['w']),
+						self.b_in.assign(self.new_params['b'])]
+		
 		self.target=is_target
 		if self.target:
 			self.sess = tf.Session()
@@ -59,13 +67,14 @@ class QNet():
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
 		
-	def assign_params(self,p_new):
-		p_assign = [p for p in p_new if p in self.params]
-		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
+	def assign_params(self,p_new):	
+		p_assign_dict = {self.new_params['W']:p_new['W'],
+						self.new_params['w']:p_new['w'],
+						self.new_params['b']:p_new['b']}
+		self.sess.run(self.p_assign, feed_dict=p_assign_dict)
 		
 	def get_params(self):
-		p_list = self.sess.run([getattr(self,p) for p in self.params])
-		return dict(zip(self.params,p_list))
+		return self.sess.run(self.p_dict)
 		
 	def Q_predict(self, s=None, s_prep=None):
 		if s is not None:
@@ -167,3 +176,90 @@ class MLPQNet():
 	def update(self, S, Q):
 		if not self.target:
 			self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})
+			
+
+class ELMNet():
+	def __init__(self, state_size, action_size,
+				N_hid=None, gamma_reg=0.001, activation_function='tanh', update_steps=50, 
+				w_init_magnitude=1.0, b_init_magnitude=0.0, minibatch_size=5, 
+				 prep_state=True, is_target=False, **kwargs):
+		"""
+		A network which uses updates based on sequential regularised ELM
+		"""
+		N_hid = action_size if N_hid is None else N_hid
+		# build network
+		self.s_input = tf.placeholder(shape=[None,state_size],dtype=tf.float32)
+		self.w_in = tf.Variable(tf.random_uniform([state_size,N_hid],0,w_init_magnitude))
+		self.b_in = tf.Variable(tf.random_uniform([1,N_hid],0,b_init_magnitude))
+		self.W = tf.Variable(tf.random_uniform([N_hid,action_size],0,1))
+		try:
+			act_fn = tf.keras.activations.get(activation_function)
+		except ValueError:
+			act_fn = tf.tanh
+		self.act = act_fn(tf.add(tf.matmul(self.s_input,self.w_in),self.b_in))
+		self.Q_est = tf.matmul(self.act,self.W)
+		self.prep_state = self.act if prep_state else None
+		
+		self.params = ['W', 'w_in', 'b_in']
+		self.target=is_target
+		if self.target:
+			self.sess = tf.Session()
+			self.sess.run(tf.global_variables_initializer())
+			return
+		
+		# Matrices for updating
+		self.k = minibatch_size
+		self.H = tf.placeholder(shape=[self.k,N_hid],dtype=tf.float32)
+		self.T = tf.placeholder(shape=[self.k,action_size],dtype=tf.float32)
+		self.H_trans = tf.transpose(self.H)
+		self.A_inv = tf.Variable(tf.random_uniform([N_hid,N_hid],0,1))
+
+		# Initialisation
+		A_t1 = tf.add(tf.scalar_mul(1.0/gamma_reg,tf.eye(N_hid)),tf.matmul(self.H_trans,self.H))
+		A_t1_inv = tf.matrix_inverse(A_t1)
+		W_t1 = tf.matmul(A_t1_inv,tf.matmul(self.H_trans,self.T))
+		self.W_init = self.W.assign(W_t1)
+		self.A_init = self.A_inv.assign(A_t1_inv)
+		
+		# Updating
+		K1 = tf.add(tf.matmul(self.H,tf.matmul(self.A_inv,self.H_trans)),tf.eye(self.k))
+		K_t = tf.subtract(tf.eye(N_hid),
+			tf.matmul(self.A_inv,tf.matmul(self.H_trans,tf.matmul(tf.matrix_inverse(K1),self.H))))
+		W_new = tf.add(tf.matmul(K_t,self.W),
+			tf.matmul(tf.matmul(K_t,self.A_inv),tf.matmul(self.H_trans,self.T)))
+		A_new = tf.matmul(K_t,self.A_inv)
+		self.W_update = self.W.assign(W_new)
+		self.A_update = self.A_inv.assign(A_new)
+		
+		# Start tensorflow session
+		self.sess = tf.Session()
+		self.sess.run(tf.global_variables_initializer())
+
+		self.first = True
+		
+	def assign_params(self,p_new):
+		p_assign = [p for p in p_new if p in self.params]
+		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
+		
+	def get_params(self):
+		p_list = self.sess.run([getattr(self,p) for p in self.params])
+		return dict(zip(self.params,p_list))
+		
+	def Q_predict(self, s=None, s_prep=None):
+		if s is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.s_input:s})
+		elif s_prep is not None:
+			return self.sess.run(self.Q_est,feed_dict={self.prep_state:s_prep})
+		else:
+			return []
+
+	def update(self, H, T):
+		if self.target:
+			return
+		if self.first:
+			self.sess.run(self.W_init,feed_dict={self.H:H,self.T:T})
+			self.sess.run(self.A_init,feed_dict={self.H:H})
+			self.first = False
+		else:
+			self.sess.run(self.W_update,feed_dict={self.H:H,self.T:T})
+			self.sess.run(self.A_update,feed_dict={self.H:H})

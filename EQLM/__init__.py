@@ -5,13 +5,13 @@
 # ---------------------- Author: Callum Wilson ------------------------
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
-try:
-	import tensorflow.compat.v1 as tf
-	tf.disable_v2_behavior()
-except ImportError:
-	import tensorflow as tf
-	
-import numpy as np
-from .environment import Environment
-from .networks import ELMNet, QNet
-from .q_agents import QAgent
+
+# from .environment import Environment
+from .networks import ELMNet
+# from .q_agents import QAgent
+
+import sys
+sys.path.append('../')
+from QLearn.environment import Environment
+from QLearn.networks import *
+from QLearn.q_agents import QAgent
