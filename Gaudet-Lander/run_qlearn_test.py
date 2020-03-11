@@ -43,7 +43,7 @@ agent = QLearn.QAgent(env, net_type='MLPQNet', f_heur=ppo_policy, n_heur=N_ep_tr
 
 R_all = []
 steps_all = []
-save_name = 'test_file.pkl'
+save_name = 'test_qlearn_11_3.pkl'
 
 while mean_r<-20:
 	agent.ep_no=0
