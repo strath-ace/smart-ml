@@ -22,6 +22,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 *.pkl
+*.npy
 MANIFEST
 
 Gaudet-Lander/AAS-18-290_6DOF_journal/
