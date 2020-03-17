@@ -79,10 +79,9 @@ policy = Policy(obs_dim,act_dim,kl_targ=0.001,epochs=20, beta=0.1, shuffle=True,
 value_function = Value_function(obs_dim,cliprange=0.5)
 agent = Agent(policy,value_function,env,input_normalizer,logger,
               policy_episodes=120,policy_steps=12000,gamma1=0.95,gamma2=0.995, lam=0.98, monitor=env.rl_stats)
-# agent.train(300000)
-gc.enable()
-agent.train(5)
 
+gc.enable()
+agent.train(300000)
 fname = "opt_discrete_4km"
 utils.save_run(policy,input_normalizer,env.rl_stats.history,fname)
 gc.disable()
