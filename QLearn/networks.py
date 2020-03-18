@@ -180,7 +180,7 @@ class MLPQNet():
 
 class ELMNet():
 	def __init__(self, state_size, action_size,
-				N_hid=None, gamma_reg=0.001, activation_function='tanh', update_steps=50, 
+				N_hid=None, gamma_reg=0.001, activation_function='tanh', 
 				w_init_magnitude=1.0, b_init_magnitude=0.0, minibatch_size=5, 
 				 prep_state=True, is_target=False, **kwargs):
 		"""
@@ -216,7 +216,7 @@ class ELMNet():
 			return
 		
 		# Matrices for updating
-		self.k = minibatch_size
+		self.k = int(minibatch_size)
 		self.H = tf.placeholder(shape=[self.k,N_hid],dtype=tf.float32)
 		self.T = tf.placeholder(shape=[self.k,action_size],dtype=tf.float32)
 		self.H_trans = tf.transpose(self.H)
@@ -244,14 +244,6 @@ class ELMNet():
 		self.sess.run(tf.global_variables_initializer())
 
 		self.first = True
-		
-# 	def assign_params(self,p_new):
-# 		p_assign = [p for p in p_new if p in self.params]
-# 		self.sess.run([getattr(self,p).assign(p_new[p]) for p in p_assign])
-		
-# 	def get_params(self):
-# 		p_list = self.sess.run([getattr(self,p) for p in self.params])
-# 		return dict(zip(self.params,p_list))
 	
 	def assign_params(self,p_new):	
 		p_assign_dict = {self.new_params['W']:p_new['W'],

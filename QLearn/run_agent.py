@@ -6,7 +6,7 @@
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
 import numpy as np
-from tqdm import trange
+from tqdm.notebook import trange
 import pickle
 import pdb
 
@@ -23,6 +23,8 @@ def do_run(agent, env, N_ep, save_name=None, show_progress=False):
 	steps=[]
 	if show_progress:
 		t = trange(N_ep, desc='bar_desc', leave=True)
+	else:
+		t = range(N_ep)
 	for ep_no in t:
 		s = env.reset()
 		done = False
