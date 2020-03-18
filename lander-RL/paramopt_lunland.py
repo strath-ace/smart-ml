@@ -104,7 +104,7 @@ if __name__ == '__main__':
 			 hp.quniform('n_eps', 500, 1800, 50),
 			 hp.quniform('minibatch_size', 2, 20, 2)]
 	global param_list
-	param_list = ('gamma_reg', 'update_steps', 'N_hid' 'gamma', 'eps0', 'n_eps', 'minibatch_size')
+	param_list = ('gamma_reg', 'update_steps', 'N_hid', 'gamma', 'eps0', 'n_eps', 'minibatch_size')
 
 	filename = 'opt_lunland_18_3.pkl'
 	while True:
