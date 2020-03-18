@@ -29,6 +29,7 @@ import bootstrapped.stats_functions as bs_stats
 
 def do_opt_run(run_no, **kwargs):
 	env = Environment("LunarLander-v2")
+	kwargs['N_hid']=int(kwargs['N_hid'])
 	agent = QAgent(env,net_type='ELMNet',f_heur=heuristic,n_heur=50,**kwargs)
 
 	N_ep = 2000
