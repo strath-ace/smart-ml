@@ -245,7 +245,7 @@ class ELMNet():
 
 		self.first = True
 	
-	def assign_params(self,p_new):	
+	def assign_params(self,p_new):
 		p_assign_dict = {self.new_params['W']:p_new['W'],
 						self.new_params['w']:p_new['w'],
 						self.new_params['b']:p_new['b']}

@@ -13,16 +13,21 @@ import pdb
 
 
 class ReplayMemory(list):
-	def __init__(self,memory_size=None,**kwargs):
+	def __init__(self,memory_size=None,demo_memory=[],n_demo=None,**kwargs):
 		list.__init__(self,[])
 		self.max_len = memory_size
+		self.demo_memory = demo_memory
+		self.n_demo = n_demo
 	def add(self, list_add):
 		self.append(list_add)
 		if self.max_len:
 			while len(self)>self.max_len:
 				self.remove(self[0])
 	def sample(self, n):
-		return _sample(self,n)
+		if self.n_demo is not None:
+			return _sample(self,n) + self.demo_memory.sample(self.n_demo)
+		else:
+			return _sample(self,n)
 
 
 class QAgent():

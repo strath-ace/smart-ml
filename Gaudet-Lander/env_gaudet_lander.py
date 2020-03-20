@@ -63,6 +63,7 @@ class LanderEnvironment(object):
 	def step(self,a,render=False):
 		a = int_to_bin(a)
 		s,r,d,info = self.main_env.step(a)
+		pdb.set_trace()
 		if render:
 			self.main_env.render()
 		if self.r_type == 'sparse':
@@ -134,4 +135,9 @@ def int_to_bin(s,s_dim=4):
 	return s_bin
 
 def reward_sparse(s,r,d,info):
-	return 1.
+	if d and r>99:
+		return 100.
+	elif d and r<-99:
+		return -100.
+	else:
+		return info['fuel']
