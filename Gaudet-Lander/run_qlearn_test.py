@@ -11,6 +11,7 @@ from env_gaudet_lander import LanderEnvironment
 
 
 def demo_run(run_no):
+	N_ep = 50000
 	env = LanderEnvironment()
 	fname = 'test_demo_21_3_{}.pkl'.format(run_no)
 	dmem=pickle.load(open('demo_disc.pkl','rb'))
