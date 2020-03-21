@@ -7,6 +7,7 @@
 
 import numpy as np
 from tqdm.notebook import trange
+from .q_agents import ReplayMemory
 import pickle
 import pdb
 
@@ -83,3 +84,17 @@ def heuristic_demo(H, env, N_ep, show=False):
 			Rt += r
 		R_ep.append(Rt)
 	return R_ep
+
+def heuristic_memory_demo(H, env, N_ep, fname=None):
+	mem = ReplayMemory()
+	for ep_no in trange(N_ep):
+		s = env.reset()
+		done = False
+		while not done:
+			prev_s = s
+			a = H(s[0])
+			s, r, done, _ = env.step(a)
+			mem.add([prev_s.reshape(-1),a,r,s.reshape(-1),done])
+	if fname is not None:
+		pickle.dump(mem,open(fname,'wb'))
+	return mem

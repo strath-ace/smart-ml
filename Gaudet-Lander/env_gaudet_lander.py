@@ -63,7 +63,6 @@ class LanderEnvironment(object):
 	def step(self,a,render=False):
 		a = int_to_bin(a)
 		s,r,d,info = self.main_env.step(a)
-		pdb.set_trace()
 		if render:
 			self.main_env.render()
 		if self.r_type == 'sparse':
