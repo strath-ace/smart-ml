@@ -18,6 +18,13 @@ class Reward(list):
 		x = np.arange(n_avg,len(self)+1,n_avg)
 		R = [np.mean(self[ind-n_avg:ind]) for ind in x]
 		return x, R
+	
+def data_smooth(data,n_avg):
+	x_vec = np.arange(0,len(data)+1,n_avg)
+	data_avg = [0]
+	for x in x_vec[1:]:
+		data_avg.append(np.mean(data[x-n_avg:x]))
+	return x_vec, data_avg
 
 def do_run(agent, env, N_ep, save_name=None, show_progress=False):
 	R_ep = Reward()
