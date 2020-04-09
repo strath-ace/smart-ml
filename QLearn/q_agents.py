@@ -28,9 +28,14 @@ class ReplayMemory(list):
 			return _sample(self,n) + self.demo_memory.sample(self.n_demo)
 		else:
 			return _sample(self,n)
+		
+		
+class PerQAgent(QAgent):
+	def __init__(self,mem_demo,**kwargs):
+		pass
 
 
-class QAgent():
+class QAgent(object):
 	def __init__(self,env,net_type='QNet',f_heur=None,n_heur=0,gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
 		self.state_size = env.state_size
 		self.action_size=env.action_size
