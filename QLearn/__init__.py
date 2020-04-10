@@ -9,3 +9,4 @@ from .q_agents import *
 from .networks import *
 from .environment import *
 from .run_agent import *
+from .per import PerQAgent
