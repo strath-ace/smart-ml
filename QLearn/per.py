@@ -53,7 +53,8 @@ class SumTree:
         self.data[self.write] = data
         self.update(idx, p)
 
-        self.write += 1
+        # TODO: adjust write to keep demo memory
+		self.write += 1
         if self.write >= self.capacity:
             self.write = 0
 
@@ -122,7 +123,7 @@ class Memory:  # stored as ( s, a, r, s_ ) in SumTree
 		
 		
 class PerQAgent(object):
-	def __init__(self,env,net_type='QNet',f_heur=None,n_heur=0,gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,**kwargs):
+	def __init__(self,env,net_type='QNet',gamma=0.6,eps0=0.9,epsf=0.0,n_eps=400,update_steps=50,demo_memory=[],capacity=20000,**kwargs):
 		self.state_size = env.state_size
 		self.action_size=env.action_size
 		try:
@@ -134,15 +135,18 @@ class PerQAgent(object):
 		self.nn_target = net_module(self.state_size, self.action_size,is_target=True,**kwargs)
 		self.nn_target.assign_params(self.nn.get_params())
 
-		self.memory = ReplayMemory(**kwargs)
+		self.memory = Memory(capacity)
+		# d = <s,a,r,s',done>
+		for d in demo_memory:
+			pred = self.nn.Q_predict(d[0])[d[1]]
+			
+			self.memory.add(abs(pred-targ),d)
 		
 		self.gamma = gamma
 		self.eps = eps0
 		self.eps0 = eps0
 		self.epsf = epsf
 		self.n_eps = n_eps
-		self.f_heur = f_heur
-		self.n_heur = n_heur
 		
 		self.prev_s = []
 		self.prev_a = []
@@ -151,9 +155,7 @@ class PerQAgent(object):
 		self.C = update_steps
 	
 	def action_select(self,state):
-		if self.ep_no<self.n_heur and self.f_heur is not None:
-			action = self.f_heur(state)
-		elif rand.random(1)<self.eps:
+		if rand.random(1)<self.eps:
 			action=rand.randint(self.action_size)
 		else:
 			q_s=self.nn.Q_predict(state)
@@ -197,6 +199,8 @@ class PerQAgent(object):
 		Q[np.arange(Q.shape[0]),a] = r
 		Q[indt,a[indt]] += self.gamma*np.max(Qd,1)
 		self.nn.update(s,Q)
+		
+		# add mem update
 		
 		self.step_count+=1
 		if self.step_count >= self.C:
