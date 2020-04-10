@@ -28,11 +28,6 @@ class ReplayMemory(list):
 			return _sample(self,n) + self.demo_memory.sample(self.n_demo)
 		else:
 			return _sample(self,n)
-		
-		
-class PerQAgent(QAgent):
-	def __init__(self,mem_demo,**kwargs):
-		pass
 
 
 class QAgent(object):
