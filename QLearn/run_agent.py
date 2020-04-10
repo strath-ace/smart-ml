@@ -6,7 +6,7 @@
 # --------------- e-mail: callum.j.wilson@strath.ac.uk ----------------
 
 import numpy as np
-from tqdm import trange
+from tqdm.notebook import trange
 from .q_agents import ReplayMemory
 import pickle
 import pdb

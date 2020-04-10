@@ -84,7 +84,7 @@ class QNet():
 		else:
 			return []
 
-	def update(self, S, Q):
+	def update(self, S, Q, is_w=None):
 		if not self.target:
 			self.sess.run(self.updateModel,{self.s_input:S,self.nextQ:Q})
 			

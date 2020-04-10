@@ -195,13 +195,14 @@ class PerQAgent(object):
 		else:
 			Q = self.nn.Q_predict(s=s)
 			Qd = self.nn_target.Q_predict(s=Sd[St])
-		pred = Q.copy()[np.arange(Q.shape[0]),a]
-		
-		Q[np.arange(Q.shape[0]),a] = r
+		xind = np.arange(Q.shape[0])
+		pred = Q.copy()[xind,a]
+		Q[xind,a] = r
 		Q[indt,a[indt]] += self.gamma*np.max(Qd,1)
+		targ = Q.copy()[xind,a]
+		Q[xind,a]=pred-np.sqrt(is_weight*(targ-pred)**2)
 		self.nn.update(s,Q)
 		
-		targ = Q.copy()[np.arange(Q.shape[0]),a]
 		errors = abs(pred-targ)
 		for err, idx in zip(errors,idxs):
 			self.memory.update(idx, err)
