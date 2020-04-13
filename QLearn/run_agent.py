@@ -79,18 +79,22 @@ def agent_demo(agent, env, N_ep, show=False):
 
 def heuristic_demo(H, env, N_ep, show=False):
 	R_ep = Reward()
+	steps=[]
 	for ep_no in trange(N_ep):
 		s = env.reset()
 		done = False
 		Rt = 0
+		n_step = 0
 		while not done:
 			a = H(s[0])
 			s, r, done, _ = env.step(a)
 			if show:
 				env.render()
 			Rt += r
+			n_step +=1
 		R_ep.append(Rt)
-	return R_ep
+		steps.append(n_step)
+	return R_ep, steps
 
 def heuristic_memory_demo(H, env, N_ep, fname=None):
 	mem = ReplayMemory()

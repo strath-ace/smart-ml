@@ -66,7 +66,7 @@ class LanderEnvironment(object):
 		if render:
 			self.main_env.render()
 		if self.r_type == 'sparse':
-			r=1
+			r=reward_sparse(s,r,d,info)
 		return s.reshape(1,-1),np.sum(r),d,info
 		
 		
