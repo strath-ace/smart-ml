@@ -134,9 +134,9 @@ def int_to_bin(s,s_dim=4):
 	return s_bin
 
 def reward_sparse(s,r,d,info):
-	if d and r>99:
+	if d and r[1]>9:
 		return 100.
-	elif d and r<-99:
+	elif d and r[0]<-99:
 		return -100.
 	else:
 		return info['fuel']
