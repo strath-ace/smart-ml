@@ -16,7 +16,7 @@ class Env(object):
                  attitude_constraint=None,
                  reward_object=None,
                  nav_period=0.20, 
-                 rh_limit = 500, tf_limit=200.0, allow_plotting=True, print_every=1,  
+                 rh_limit = 500, tf_limit=200.0, allow_plotting=False, print_every=1,  
                  scale_agent_action=True, pp_debug=False): 
         self.scale_agent_action = scale_agent_action
         self.rh_limit = rh_limit

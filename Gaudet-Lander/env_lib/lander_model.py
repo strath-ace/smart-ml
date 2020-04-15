@@ -3,7 +3,7 @@ from . import env_utils as envu
 
 class Lander_model(object):
 
-    def __init__(self, thruster_model, use_trajectory_list=False, attitude_parameterization=None, divert = (0.0,  0.0, 0.0), 
+    def __init__(self, thruster_model, use_trajectory_list=True, attitude_parameterization=None, divert = (0.0,  0.0, 0.0), 
                  apf_v0=70, apf_tau1=20, apf_tau2=250, gain=1.5, apf_vf1=-2.0, apf_vf2=-1.0, apf_atarg=5.0, apf_tau_xy=30):  
         self.traj = {}
         self.state_keys = ['position','velocity','thrust','bf_thrust', 'torque', 'attitude', 'attitude_321', 'w',  'mass', 't_go']

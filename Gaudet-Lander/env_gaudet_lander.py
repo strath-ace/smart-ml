@@ -66,7 +66,7 @@ class LanderEnvironment(object):
 		if render:
 			self.main_env.render()
 		if self.r_type == 'sparse':
-			r=reward_sparse(s,r,d,info)
+			r=reward_sparse(self.main_env,s,r,d,info)
 		return s.reshape(1,-1),np.sum(r),d,info
 		
 		
@@ -133,10 +133,12 @@ def int_to_bin(s,s_dim=4):
 	s_bin = np.array([int(s) for s in s_str])
 	return s_bin
 
-def reward_sparse(s,r,d,info):
+def reward_sparse(env,s,r,d,info):
+	r_sparse = info['fuel']
 	if d and r[1]>9:
-		return 100.
-	elif d and r[0]<-99:
-		return -100.
-	else:
-		return info['fuel']
+		r_sparse += 100.
+	elif d:
+		pos_dist = np.linalg.norm(env.lander.state['position'])
+		pos_dist = 2500. if pos_dist > 2500. else 1. if pos_dist < 1. else pos_dist
+		r_sparse += -100. * np.log(pos_dist) / np.log(2500.)
+	return r_sparse
