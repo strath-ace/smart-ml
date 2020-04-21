@@ -1,7 +1,0 @@
-README.md
-setup.py
-gym_MarsLander.egg-info/PKG-INFO
-gym_MarsLander.egg-info/SOURCES.txt
-gym_MarsLander.egg-info/dependency_links.txt
-gym_MarsLander.egg-info/requires.txt
-gym_MarsLander.egg-info/top_level.txt
