@@ -1,3 +1,3 @@
 # smart-ml
 
-Machine Learning Algorithms
+Strathclyde Mechanical and Aerospace Research Toolbox for Machine Learning
