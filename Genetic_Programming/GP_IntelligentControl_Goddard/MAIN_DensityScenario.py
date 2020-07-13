@@ -38,13 +38,20 @@ import multiprocessing
 from scipy.interpolate import PchipInterpolator
 from time import time, strftime
 from functools import partial
-import GP_PrimitiveSet as gpprim
 import os
-import DEAP_Mods as mods
-import DensityScenario_utils as utils
 import _pickle as cPickle
 import statistics
 from copy import copy
+
+import pathlib
+path = str(pathlib.Path(__file__).parent.absolute())
+
+import sys
+sys.path.append(path + '/Goddard_Models')
+import DensityScenario_utils as utils
+sys.path.append(path + '/GP_Functions')
+import DEAP_Mods as mods
+import GP_PrimitiveSet as gpprim
 
 ##########################  TUNABLE PARAMETERS #####################################
 flag_save = True  # set to True to save output data from the evolutionary process and allow to save plots
@@ -115,17 +122,17 @@ class Rocket:
         self.Vtarget = np.sqrt(self.GMe / self.Rtarget)  # m/s
 
 
-tref = np.load("Files/time.npy")
+tref = np.load("Goddard_ReferenceTrajectory/time.npy")
 total_time_simulation = tref[-1]
 tfin = tref[-1]
 
-Rref = np.load("Files/R.npy")
-Thetaref = np.load("Files/Theta.npy")
-Vrref = np.load("Files/Vr.npy")
-Vtref = np.load("Files/Vt.npy")
-mref = np.load("Files/m.npy")
-Ttref = np.load("Files/Tt.npy")
-Trref = np.load("Files/Tr.npy")
+Rref = np.load("Goddard_ReferenceTrajectory/R.npy")
+Thetaref = np.load("Goddard_ReferenceTrajectory/Theta.npy")
+Vrref = np.load("Goddard_ReferenceTrajectory/Vr.npy")
+Vtref = np.load("Goddard_ReferenceTrajectory/Vt.npy")
+mref = np.load("Goddard_ReferenceTrajectory/m.npy")
+Ttref = np.load("Goddard_ReferenceTrajectory/Tt.npy")
+Trref = np.load("Goddard_ReferenceTrajectory/Tr.npy")
 
 Rfun = PchipInterpolator(tref, Rref)
 Thetafun = PchipInterpolator(tref, Thetaref)
