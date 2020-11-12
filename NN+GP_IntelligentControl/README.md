@@ -18,11 +18,11 @@ To reproduce the results from scratches run the code in the following order:
 
 The folder Datasets contains:
 * GP_creationSet.npy: the disturbance scenarios used to create the GP control law offline.
-[GP_creationSet.png]
+[Datasets/GP_creationSet.png]
 * training_points.npy: the disturbance scenarios used to optimize the GP control law 
-[training_points.png]
+[Datasets/training_points.png]
 * TestSetNN.npy: the disturbance scenarios used to test the controller
-[TestSetNN.png]
+[Datasets/TestSetNN.png]
 * dataset_forNN_500samplesTEST_1percent_BFGS_hof4.npy
 * dataset_forNN_500samplesTEST_1percent_NM_hof4.npy
 * visualize_dataset.py: script used to produce the images of the datasets
