@@ -1,4 +1,4 @@
-# Hybrid Neural Network-GeneticProgramming Intelligent Control Approach
+# Hybrid Neural Network-Genetic Programming Intelligent Control Approach
 
 This software has been released under the MPL-2.0 and LGPL-3.0 licenses. It includes source code from DEAP(https://github.com/deap/deap) which is released under the LGPL-3.0 license.
 
