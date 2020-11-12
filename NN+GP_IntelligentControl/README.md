@@ -3,7 +3,9 @@
 This software has been released under the MPL-2.0 and LGPL-3.0 licenses. It includes source code from DEAP(https://github.com/deap/deap) which is released under the LGPL-3.0 license.
 
 ## Description
-The code contained in this directory is the one used to obtain the results presented in [1] at the BIOMA 2020 conference. 
+The code contained in this directory is the one used to obtain the results presented in [1] at the BIOMA 2020 conference. The developed code is based on the DEAP library for the Genetic Programming (GP) part and Tensorflow for the Neural Network (NN). As described in [1] the overall procedure to used the code is summarized in the picture below
+
+![alt text](https://github.com/strath-ace-labs/smart-ml/blob/master/NN%2BGP_IntelligentControl/procedure.png)
 
 To reproduce the results from scratches run the code in the following order:
 1) Inside the folder 1_OfflineCreationGPLaw:
@@ -16,41 +18,21 @@ To reproduce the results from scratches run the code in the following order:
 3) Inside the folder 3_NN+GP_Control:
 * The script OnlineControl_NN.py performs the control simulation on the disturbance scenarios contained in Datasets/TestSetNN.npy, using simultaneously the NN which always optimizes the GP control law and the GP control law non optimized. The NN can be either trained from scratches or the model produced for [1] can be loaded. 
 
-The folder Datasets contains:
-* GP_creationSet.npy: the disturbance scenarios used to create the GP control law offline.
-![alt text](https://github.com/strath-ace-labs/smart-ml/blob/master/NN%2BGP_IntelligentControl/Datasets/GP_creationSet.png)
-* training_points.npy: the disturbance scenarios used to optimize the GP control law 
-![alt text](https://github.com/strath-ace-labs/smart-ml/blob/master/NN%2BGP_IntelligentControl/Datasets/training_points.png)
-* TestSetNN.npy: the disturbance scenarios used to test the controller
-![alt text](https://github.com/strath-ace-labs/smart-ml/blob/master/NN%2BGP_IntelligentControl/Datasets/TestSetNN.png)
-* dataset_forNN_500samplesTEST_1percent_BFGS_hof4.npy
-* dataset_forNN_500samplesTEST_1percent_NM_hof4.npy
-* visualize_dataset.py: script used to produce the images of the datasets
+A more detailed description on the folders contents can be found inside them.
 
-
-The developed code is based on the DEAP library and makes use of Genetic Programming to evaluate online a control law for a 
-Goddard Rocket test case in 3 different failure scenarios.
-
-The main improvements introduced in comparison to a standard Genetic Programming algorithm are:
-* The individuals in the population are divided in different categories according to their length.
-* Such categories are considered in the InclusiveTournament selection mechanism, which performs a double tournament selection on each category to maintain diversity.
-* The crossover operations are performed between individuals of different categories in order to maintain diversity in the population
-* Two fitness functions are used. The first one it the primary objective function while the second one is a penalty function used to take into account the imposed constraints. All the selection mechanisms and the hall of fame insertion works accordingly to this penalty measure.
-* The adopted evolutionary strategy consists in first find feasible individuals (penalty=0) and then evolve the population towards individuals with the lowest objective function (first fitness function).
-
-This code was developed thanks to concepts and ideas discussed in [2], [3] and [4].
-  
 
 # Citation
 If you use any part of the code, please cite [1].
 
 
 ## Main libraries used (Python):
-  * DEAP 1.2.2: https://github.com/deap/deap
-  * Scipy 1.3.2
-  * Numpy 1.18.1
-  * Matplotlib 3.1.1
+  * DEAP 1.3.1: https://github.com/deap/deap
+  * Scipy 1.4.1
+  * Numpy 1.19.0
+  * Matplotlib 3.2.2
   * Multiprocessing 3.8.3
+  * Tensorflow 2.2.0
+  * tqdm 4.47.0: https://github.com/tqdm/tqdm
 
 ## References
 1. [TO BE PUBLISHED] F. Marchetti, E. Minisci. A Hybrid Neural Network-Genetic Programming Intelligent Control Approach. Bioinspired Optimization Methods and Their Applications. BIOMA 2020.
