@@ -30,8 +30,7 @@ If you use any part of the code, please cite [1].
   * Multiprocessing 3.8.3
 
 ## References
-1. [TO BE PUBLISHED] F. Marchetti, E. Minisci, A. Riccardi. Towards Intelligent Control via Genetic Programming. 
-The 2020 IEEE International Joint Conference on Neural Network Proceedings. 2020
+1. F. Marchetti, E. Minisci, A. Riccardi. Towards Intelligent Control via Genetic Programming. The 2020 IEEE International Joint Conference on Neural Network Proceedings. 2020
 2. Entropy-Driven Adaptive Representation. J. P. Rosca. Proceedings of the Workshop on Genetic Programming: From Theory to Real-World Applications, 23-32. 1995
 3. Exploration and Exploitation in Evolutionary Algorithms: a Survey. M. Crepinsek, S.Liu, M. Mernik. ACM Computer Surveys. 2013
 4. Theoretical and Numerical Constraint-Handling Techniques used with Evolutionary Algorithms: A Survey of the State of the Art. C. A. Coello Coello. Computer Methods in Applied Mechanics and Engineering 191. 2002
