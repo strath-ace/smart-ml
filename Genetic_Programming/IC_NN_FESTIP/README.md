@@ -38,6 +38,6 @@ If you use any part of the code, please cite [1].
   * tqdm 4.47.0: https://github.com/tqdm/tqdm
 
 ## References
-1. [TO BE PUBLISHED] F. Marchetti, E. Minisci. A Hybrid Neural Network-Genetic Programming Intelligent Control Approach. Bioinspired Optimization Methods and Their Applications. BIOMA 2020.
+1. F. Marchetti, E. Minisci. A Hybrid Neural Network-Genetic Programming Intelligent Control Approach. Bioinspired Optimization Methods and Their Applications. BIOMA 2020.
 
 
