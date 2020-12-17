@@ -5,7 +5,7 @@ This software has been released under the MPL-2.0 and LGPL-3.0 licenses. It incl
 ## Description
 The code contained in this directory is the one used to obtain the results presented in [1] at the BIOMA 2020 conference. The developed code is based on the DEAP library for the Genetic Programming (GP) part and Tensorflow for the Neural Network (NN). As described in [1] the overall procedure to use the code is summarized in the picture below
 
-![alt text](https://github.com/strath-ace-labs/smart-ml/blob/master/NN%2BGP_IntelligentControl/procedure.png)
+![alt text](https://github.com/strath-ace-labs/smart-ml/blob/master/Genetic_Programming/IC_NN_FESTIP/procedure.png)
 
 To reproduce the results from scratches run the code in the following order:
 1) Inside the folder 1_OfflineCreationGPLaw:
