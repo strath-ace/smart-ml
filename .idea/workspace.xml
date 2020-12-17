@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7662582a-7018-4c76-8d0f-273d6420d29c" name="Default Changelist" comment="Changed folder structure">
-      <change afterPath="$PROJECT_DIR$/.Rhistory" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/smart-ml.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Genetic_Programming/IC_NN_FESTIP/.idea/NN+GP_IntelligentControl.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Genetic_Programming/IC_NN_FESTIP/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Genetic_Programming/IC_NN_FESTIP/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Genetic_Programming/IC_NN_FESTIP/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Genetic_Programming/IC_NN_FESTIP/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Genetic_Programming/IC_NN_FESTIP/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="7662582a-7018-4c76-8d0f-273d6420d29c" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -46,6 +35,7 @@
       <workItem from="1605439209337" duration="109000" />
       <workItem from="1605439350397" duration="19000" />
       <workItem from="1608198379401" duration="383000" />
+      <workItem from="1608199465586" duration="400000" />
     </task>
     <task id="LOCAL-00001" summary="Changed folder structure">
       <created>1608198527190</created>
@@ -54,7 +44,14 @@
       <option name="project" value="LOCAL" />
       <updated>1608198527190</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Changed folder structure">
+      <created>1608199727457</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1608199727457</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
