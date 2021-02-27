@@ -35,9 +35,10 @@ to Real-World Applications, 23-32. 1995
 import numpy as np
 from copy import deepcopy
 import random
-from functools import partial
+from functools import partial, wraps
 from deap import tools, gp
-from operator import eq
+from operator import eq, truediv, mul
+from collections import Sequence
 try:
     import models_FESTIP as mods
 except ModuleNotFoundError:
@@ -46,7 +47,7 @@ except ModuleNotFoundError:
 """                                         NEW FUNCTIONS AND CLASSES                                               """
 #######################################################################################################################
 
-def InclusiveTournament(mu, organized_pop, good_indexes, selected_individuals, fitness_size, parsimony_size, creator):
+def InclusiveTournament(mu, organized_pop, good_indexes, selected_individuals, parsimony_size, creator, greed_prevention):
     """
     Author(s): Francesco Marchetti
     email: francesco.marchetti@strath.ac.uk
@@ -60,6 +61,9 @@ def InclusiveTournament(mu, organized_pop, good_indexes, selected_individuals, f
     chosen = []
     exploited = np.zeros((len(good_indexes)))
     j = 0
+    enough = False
+    if greed_prevention is True:
+        count = 0
     while len(chosen) < mu:
         if j > len(good_indexes) - 1:
             j = 0
@@ -67,13 +71,27 @@ def InclusiveTournament(mu, organized_pop, good_indexes, selected_individuals, f
 
         if exploited[j] < len(organized_pop["cat{}".format(i)]):
             if len(organized_pop["cat{}".format(i)]) > 1:
-                selected = selDoubleTournament(organized_pop["cat{}".format(i)], selected_individuals, fitness_size,
-                                               parsimony_size, creator, fitness_first=True)
-                chosen.append(selected)
+                selected = selDoubleTournament(organized_pop["cat{}".format(i)], selected_individuals, parsimony_size,
+                                               creator, enough, fitness_first=True)
             else:
-                chosen.append(organized_pop["cat{}".format(i)][0])
+                selected = organized_pop["cat{}".format(i)][0]
+            if greed_prevention is True:
+                if selected.fitness.values[-1] == 0:
+                    count += 1
+            chosen.append(selected)
             exploited[j] += 1
         j += 1
+        if greed_prevention is True:
+            choice = random.random()
+            if choice > 0.8:
+                enough = True
+            elif choice <= 0.8:
+                enough = False
+            if count >= 2 * mu / 3:
+                enough = True
+
+    if enough is True:
+        print("Greed prevention")
     return chosen
 
 
@@ -238,7 +256,7 @@ def subset_diversity(population, creator):
 """                                   MODIFIED FUNCTIONS FROM DEAP LIBRARY                                          """
 #######################################################################################################################
 
-def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb, mutpb):
+def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb, mutpb, cx_limit, inclusive_mutation, inclusive_reproduction):
     """
     Function to perform crossover,mutation or reproduction operations based on varOr function from DEAP library.
     Modified to implement the inclusive crossover, mutation and reproduction
@@ -273,7 +291,7 @@ def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb,
     if sub_pop == []:
         print("Exploring for feasible individuals. Mutpb: {}, Cxpb:{}".format(mutpb, cxpb))
     else:
-        if cxpb < 0.65:
+        if cxpb < cx_limit:
             mutpb = mutpb - 0.01
             cxpb = cxpb + 0.01
         print("\n")
@@ -314,30 +332,36 @@ def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb,
                 del ind2.fitness.values
                 offspring.append(ind2)
         elif op_choice < cxpb + mutpb:  # Apply mutation
-            '''ind = toolbox.clone(selBest(population))  # maybe better to use a sort of roulette
-            old = ind
-            ind, = toolbox.mutate(ind)
-            if sum(old.fitness.wvalues) >= sum(ind.fitness.wvalues) and len(ind) > limit_size:
-                ind = old
-            del ind.fitness.values
-            offspring.append(ind)'''
-            if not good_list:
-                good_list = list(good_indexes)
-            used = random.choice(good_list)
-            cat = used
-            good_list.remove(used)
-            ind = toolbox.clone(random.choice(sub_div["cat{}".format(int(cat))]))
-            ind, = toolbox.mutate(ind)
-            del ind.fitness.values
-            offspring.append(ind)
+            if inclusive_mutation is False:
+                ind = toolbox.clone(selBest(population))  # maybe better to use a sort of roulette
+                ind, = toolbox.mutate(ind)
+                del ind.fitness.values
+                offspring.append(ind)
+            else:
+                if not good_list:
+                    good_list = list(good_indexes)
+                used = random.choice(good_list)
+                cat = used
+                good_list.remove(used)
+                ind = toolbox.clone(random.choice(sub_div["cat{}".format(int(cat))]))
+                ind, = toolbox.mutate(ind)
+                del ind.fitness.values
+                offspring.append(ind)
         else:  # Apply reproduction
-            offspring.append(selBest(population))  #  OLD reproduce only from the best
-
+            if inclusive_reproduction is False:
+                offspring.append(selBest(population))
+            else:
+                if not good_list:
+                    good_list = list(good_indexes)
+                used = random.choice(good_list)
+                cat = used
+                good_list.remove(used)
+                offspring.append(selBest(sub_div["cat{}".format(int(cat))]))
     return offspring, len_subpop, mutpb, cxpb
 
 
 ############## MODIFIED BLOAT CONTROL #########################################
-'''def staticLimitMod(key, max_value):
+def staticLimitMod(key, max_value):
     """This is a modification of the staticLimit function implemented in the DEAP library in order to
     deal with individual composed by multiple trees
 
@@ -387,7 +411,7 @@ def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb,
 
         return wrapper
 
-    return decorator'''
+    return decorator
 
 
 ######################## MODIFIED SELECTION MECHANISMS ###########################
@@ -434,7 +458,7 @@ def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb,
         return _fitTournament(individuals, k, tsize)'''
 
 
-def selDoubleTournament(individuals, k, fitness_size, parsimony_size, creator, fitness_first):
+def selDoubleTournament(individuals, k, parsimony_size, creator, enough, fitness_first):
     """This is a modification of the xselDoubleTournament function from [2] which itself is a modification of
      the selDoubleTournament function implemented in the DEAP library. The modification is done in order to deal with
      individual composed by multiple trees and with the 2 fitness functions used in this work fitness functions.
@@ -466,7 +490,7 @@ def selDoubleTournament(individuals, k, fitness_size, parsimony_size, creator, f
     """
     assert (1 <= parsimony_size <= 2), "Parsimony tournament size has to be in the range [1, 2]."
 
-    def _sizeTournament(individuals, k, select):
+    def _sizeTournament(individuals, enough, k, select):
         chosen = []
         for i in range(k):
             # Select two individuals from the population
@@ -475,7 +499,7 @@ def selDoubleTournament(individuals, k, fitness_size, parsimony_size, creator, f
                 return random.choice(individuals)
             else:
                 prob = parsimony_size / 2.
-                ind1, ind2 = select(individuals, k=2)
+                ind1, ind2 = select(individuals, enough, k=2)
                 try:
                     if type(ind1[0]) == creator.SubIndividual:
                         lind1 = sum([len(gpt) for gpt in ind1])  # Modified part
@@ -495,33 +519,38 @@ def selDoubleTournament(individuals, k, fitness_size, parsimony_size, creator, f
 
             return chosen[0]
 
-    def _fitTournament(individuals, k):
+    def _fitTournament(individuals, enough, k):
         chosen = []
         for _ in range(k):
             a1, a2 = random.sample(individuals, 2)
-            if a1.fitness.values[-1] == 0 and a2.fitness.values[-1] == 0:
+            if enough is False:
+                if a1.fitness.values[-1] == 0 and a2.fitness.values[-1] == 0:
+                    if sum(a1.fitness.wvalues) > sum(a2.fitness.wvalues):
+                        chosen.append(a1)
+                    else:
+                        chosen.append(a2)
+                elif a1.fitness.values[-1] == 0 and a2.fitness.values[-1] != 0:
+                    chosen.append(a1)
+                elif a1.fitness.values[-1] != 0 and a2.fitness.values[-1] == 0:
+                    chosen.append(a2)
+                elif a1.fitness.values[-1] != 0 and a2.fitness.values[-1] != 0:
+                    if a1.fitness.values[-1] < a2.fitness.values[-1]:
+                        chosen.append(a1)
+                    else:
+                        chosen.append(a2)
+            else:
                 if sum(a1.fitness.wvalues) > sum(a2.fitness.wvalues):
                     chosen.append(a1)
                 else:
                     chosen.append(a2)
-            elif a1.fitness.values[-1] == 0 and a2.fitness.values[-1] != 0:
-                chosen.append(a1)
-            elif a1.fitness.values[-1] != 0 and a2.fitness.values[-1] == 0:
-                chosen.append(a2)
-            elif a1.fitness.values[-1] != 0 and a2.fitness.values[-1] != 0:
-                if a1.fitness.values[-1] < a2.fitness.values[-1]:
-                    chosen.append(a1)
-                else:
-                    chosen.append(a2)
-
         return chosen
 
     if fitness_first:
         tfit = partial(_fitTournament)
-        return _sizeTournament(individuals, k, tfit)
+        return _sizeTournament(individuals, enough, k, tfit)
     else:
         tsize = partial(_sizeTournament, select=tools.selRandom)
-        return _fitTournament(individuals, k)
+        return _fitTournament(individuals, enough, k)
 
 
 def selBest(individuals):
@@ -553,148 +582,6 @@ def selBest(individuals):
                 if sum(ind.fitness.wvalues) > sum(best.fitness.wvalues):       #
                     best = ind                                                 # Modified part
     return best
-
-
-######################## MODIFIED FITNESS CLASS ###########################
-
-'''class FitnessMulti(object):
-    """Fitness class modified from DEAP library. Only modification is the sum inserted in the comparison functions.
-
-    Original Description:
-    The fitness is a measure of quality of a solution. If *values* are provided as a tuple, the fitness is initialized
-    using those values, otherwise it is empty (or invalid).
-    :param values: The initial values of the fitness as a tuple, optional.
-    Fitnesses may be compared using the ``>``, ``<``, ``>=``, ``<=``, ``==``, ``!=``. The comparison of those operators
-    is made lexicographically. Maximization and minimization are taken care off by a multiplication between the
-    :attr:`weights` and the fitness :attr:`values`. The comparison can be made between fitnesses of different size,
-    if the fitnesses are equal until the extra elements, the longer fitness will be superior to the shorter.
-    Different types of fitnesses are created in the :ref:`creating-types` tutorial.
-    .. note::
-       When comparing fitness values that are **minimized**, ``a > b`` will return :data:`True` if *a* is **smaller**
-       than *b*.
-    """
-    weights = None
-    """The weights are used in the fitness comparison. They are shared among
-    all fitnesses of the same type. When subclassing :class:`Fitness`, the
-    weights must be defined as a tuple where each element is associated to an
-    objective. A negative weight element corresponds to the minimization of
-    the associated objective and positive weight to the maximization.
-
-    .. note::
-        If weights is not defined during subclassing, the following error will
-        occur at instantiation of a subclass fitness object:
-
-        ``TypeError: Can't instantiate abstract <class Fitness[...]> with
-        abstract attribute weights.``
-    """
-
-    wvalues = ()
-    """Contains the weighted values of the fitness, the multiplication with the
-    weights is made when the values are set via the property :attr:`values`.
-    Multiplication is made on setting of the values for efficiency.
-
-    Generally it is unnecessary to manipulate wvalues as it is an internal
-    attribute of the fitness used in the comparison operators.
-    """
-
-    def __init__(self, values=()):
-        if self.weights is None:
-            raise TypeError("Can't instantiate abstract %r with abstract "
-                            "attribute weights." % (self.__class__))
-
-        if not isinstance(self.weights, Sequence):
-            raise TypeError("Attribute weights of %r must be a sequence."
-                            % self.__class__)
-
-        if len(values) > 0:
-            self.values = values
-
-    def getValues(self):
-        return tuple(map(truediv, self.wvalues, self.weights))
-
-    def setValues(self, values):
-        try:
-            self.wvalues = tuple(map(mul, values, self.weights))
-        except TypeError:
-            _, _, traceback = sys.exc_info()
-            raise TypeError("Both weights and assigned values must be a "
-                            "sequence of numbers when assigning to values of "
-                            "%r. Currently assigning value(s) %r of %r to a "
-                            "fitness with weights %s."
-                            % (self.__class__, values, type(values),
-                               self.weights)).with_traceback(traceback)
-
-    def delValues(self):
-        self.wvalues = ()
-
-    values = property(getValues, setValues, delValues,
-                      ("Fitness values. Use directly ``individual.fitness.values = values`` "
-                       "in order to set the fitness and ``del individual.fitness.values`` "
-                       "in order to clear (invalidate) the fitness. The (unweighted) fitness "
-                       "can be directly accessed via ``individual.fitness.values``."))
-
-    def dominates(self, other, obj=slice(None)):
-        """Return true if each objective of *self* is not strictly worse than
-        the corresponding objective of *other* and at least one objective is
-        strictly better.
-
-        :param obj: Slice indicating on which objectives the domination is
-                    tested. The default value is `slice(None)`, representing
-                    every objectives.
-        """
-        not_equal = False
-        for self_wvalue, other_wvalue in zip(self.wvalues[obj], other.wvalues[obj]):
-            if self_wvalue > other_wvalue:
-                not_equal = True
-            elif self_wvalue < other_wvalue:
-                return False
-        return not_equal
-
-    @property
-    def valid(self):
-        """Assess if a fitness is valid or not."""
-        return len(self.wvalues) != 0
-
-    def __hash__(self):
-        return hash(self.wvalues)
-
-    def __gt__(self, other):
-        return not self.__le__(other)
-
-    def __ge__(self, other):
-        return not self.__lt__(other)
-
-    def __le__(self, other):
-        return sum(self.wvalues) <= sum(other.wvalues)  # Modified part
-
-    def __lt__(self, other):
-        return sum(self.wvalues) < sum(other.wvalues)  # Modified part
-
-    def __eq__(self, other):
-        return sum(self.wvalues) == sum(other.wvalues)  # Modified part
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __deepcopy__(self, memo):
-        """Replace the basic deepcopy function with a faster one.
-
-        It assumes that the elements in the :attr:`values` tuple are
-        immutable and the fitness does not contain any other object
-        than :attr:`values` and :attr:`weights`.
-        """
-        copy_ = self.__class__()
-        copy_.wvalues = self.wvalues
-        return copy_
-
-    def __str__(self):
-        """Return the values of the Fitness object."""
-        return str(self.values if self.valid else tuple())
-
-    def __repr__(self):
-        """Return the Python code to build a copy of the object."""
-        return "%s.%s(%r)" % (self.__module__, self.__class__.__name__,
-                              self.values if self.valid else tuple())'''
 
 
 ####################### MODIFIED HALL OF FAME #############################
@@ -988,7 +875,7 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
         success = mods.check_success(toolbox, halloffame, **kwargs)
     else:
         try:
-            if min_fit[0][0] < kwargs['fit_tol']:
+            if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
                 success = True
             else:
                 success = False
@@ -1001,7 +888,8 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
         # Vary the population
 
         sub_div, good_index = subset_diversity(population, creator)
-        offspring, len_feas, mutpb, cxpb = varOrMod(population, toolbox, lambda_, sub_div, good_index, cxpb, mutpb)
+        offspring, len_feas, mutpb, cxpb = varOrMod(population, toolbox, lambda_, sub_div, good_index, cxpb, mutpb, kwargs['cx_limit'],
+                                                    kwargs['inclusive_mutation'], kwargs['inclusive_reproduction'])
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(partial(toolbox.evaluate, pset=pset, kwargs=kwargs), invalid_ind)
@@ -1025,12 +913,11 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
             print(logbook.stream)
 
         min_fit = np.array(logbook.chapters["fitness"].select("min"))
-
         if kwargs['fit_tol'] is None and mods is not None:
             success = mods.check_success(toolbox, halloffame, **kwargs)
         else:
             try:
-                if min_fit[0][0] < kwargs['fit_tol']:
+                if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
                     success = True
                 else:
                     success = False

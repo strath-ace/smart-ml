@@ -25,6 +25,118 @@
 '''Functions used by the propagators in the MAIN_DensityScenario.py file'''
 
 import numpy as np
+from deap import gp
+from scipy.integrate import solve_ivp, simps
+
+
+def evaluate(individual, pset, **k):
+
+    penalty = []
+
+    fTr = gp.compile(expr=individual[0], pset=pset[0])
+    fTt = gp.compile(expr=individual[1], pset=pset[1])
+
+    Rfun = k['kwargs']['Rfun']
+    Thetafun = k['kwargs']['Thetafun']
+    Vrfun = k['kwargs']['Vrfun']
+    Vtfun = k['kwargs']['Vtfun']
+    Trfun = k['kwargs']['Trfun']
+    Ttfun = k['kwargs']['Ttfun']
+    t_init = k['kwargs']['t_init']
+    tfin = k['kwargs']['tfin']
+    init_cond = k['kwargs']['init_cond']
+    obj = k['kwargs']['obj']
+
+    def sys(t, x):
+        # State Variables
+        R = x[0]
+        theta = x[1]
+        Vr = x[2]
+        Vt = x[3]
+        m = x[4]
+
+        if R < obj.Re - 0.5 or np.isnan(R):
+            penalty.append((R - obj.Re) / obj.Htarget)
+            R = obj.Re
+
+        if m < obj.M0 - obj.Mp or np.isnan(m):
+            penalty.append((m - (obj.M0 - obj.Mp)) / obj.M0)
+            m = obj.M0 - obj.Mp
+
+        r = Rfun(t)
+        th = Thetafun(t)
+        vr = Vrfun(t)
+        vt = Vtfun(t)
+
+        er = r - R
+        et = th - theta
+        evr = vr - Vr
+        evt = vt - Vt
+
+        rho = k['kwargs']['rho_newmodel'](R - obj.Re)
+        Dr = 0.5 * rho * Vr * np.sqrt(Vr ** 2 + Vt ** 2) * obj.Cd * obj.A  # [N]
+        Dt = 0.5 * rho * Vt * np.sqrt(Vr ** 2 + Vt ** 2) * obj.Cd * obj.A  # [N]
+        g = obj.g0 * (obj.Re / R) ** 2  # [m/s2]
+        g0 = obj.g0
+        Isp = obj.Isp
+
+        Tr = Trfun(t) + fTr(er, evr)
+        Tt = Ttfun(t) + fTt(et, evt)
+
+        if np.iscomplex(Tr):
+            Tr = 0
+        elif Tr < 0.0 or np.isnan(Tr):
+            penalty.append((Tr) / obj.Tmax)
+            Tr = 0.0
+        elif Tr > obj.Tmax or np.isinf(Tr):
+            penalty.append((Tr - obj.Tmax) / obj.Tmax)
+            Tr = obj.Tmax
+        if np.iscomplex(Tt):
+            Tt = 0
+        elif Tt < 0.0 or np.isnan(Tt):
+            penalty.append((Tt) / obj.Tmax)
+            Tt = 0.0
+        elif Tt > obj.Tmax or np.isinf(Tt):
+            penalty.append((Tt - obj.Tmax) / obj.Tmax)
+            Tt = obj.Tmax
+
+        dxdt = np.array((Vr,
+                         Vt / R,
+                         Tr / m - Dr / m - g + Vt ** 2 / R,
+                         Tt / m - Dt / m - (Vr * Vt) / R,
+                         -np.sqrt(Tt ** 2 + Tr ** 2) / g0 / Isp))
+        return dxdt
+
+    def find_close(t, x):
+        """To stop propagation when the difference in height get smaller than 20 meters"""
+        return abs(x[0] - Rfun(t)) - 20
+    find_close.terminal = True
+
+    sol = solve_ivp(sys, [t_init, tfin], init_cond)
+    y1 = sol.y[0, :]
+    y2 = sol.y[1, :]
+
+    tt = sol.t
+
+    r = Rfun(tt)
+    theta = Thetafun(tt)
+
+    err1 = (r - y1) / obj.Htarget
+    err2 = (theta - y2) / 0.9
+
+    fitness1 = abs(simps(abs(err1), tt))
+    fitness2 = abs(simps(abs(err2), tt))
+    if fitness1 > fitness2:
+        use = fitness1
+    else:
+        use = fitness2
+    if penalty != []:
+        pen = np.sqrt(sum(np.array(penalty) ** 2))
+        x = [use, pen]
+        return x
+    else:
+        return [use, 0.0]
+
 
 def air_density(h):
     beta = 1 / 8500.0  # scale factor [1/m]
@@ -179,7 +291,7 @@ def sys2GP_ISA(t, x, obj, Trfun, Ttfun):
     elif Tt < 0:
         Tt = 0.0
 
-    rho = isa(R - obj.Re, 1)[1]
+    rho = float(isa(R - obj.Re, 1)[1])
 
     Dr = 0.5 * rho * Vr * np.sqrt(Vr ** 2 + Vt ** 2) * Cd * obj.A  # [N]
     Dt = 0.5 * rho * Vt * np.sqrt(Vr ** 2 + Vt ** 2) * Cd * obj.A  # [N]

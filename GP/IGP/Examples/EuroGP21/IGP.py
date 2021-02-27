@@ -27,7 +27,8 @@ import Benchmarks
 matplotlib.rcParams.update({'font.size': 18})
 
 bench = 'koza1'
-
+inclusive_mutation = True
+inclusive_reproduction = True
 terminals, npoints = Benchmarks.out_terminals(bench)
 
 nEph = 1
@@ -49,6 +50,7 @@ def main():
 
     mutpb = 0.8
     cxpb = 0.2
+    cx_limit = 0.8
     pool = multiprocessing.Pool(nbCPU)
     toolbox.register("map", pool.map)
 
@@ -70,7 +72,8 @@ def main():
 
     pop, log, pop_statistics, ind_lengths = funs.eaMuPlusLambdaTol(best_pop, toolbox, Mu, Lambda, size_gen, cxpb, mutpb,
                                                                    pset, creator, stats=mstats, halloffame=hof,
-                                                                   verbose=True, fit_tol=fit_tol)
+                                                                   verbose=True, fit_tol=fit_tol, inclusive_reproduction=inclusive_reproduction,
+                                                                   inclusive_mutation=inclusive_mutation, cx_limit=cx_limit)
 
     ####################################################################################################################
 
@@ -147,7 +150,7 @@ toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.ex
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 toolbox.register("compile", gp.compile, pset=pset)
 toolbox.register("evaluate", evaluate)
-toolbox.register("select", funs.InclusiveTournament, selected_individuals=1, fitness_size=2, parsimony_size=1.6, creator=creator)
+toolbox.register("select", funs.InclusiveTournament, selected_individuals=1, parsimony_size=1.6, creator=creator, greed_prevention=False)
 toolbox.register("mate", gp.cxOnePoint)
 toolbox.register("expr_mut", gp.genHalfAndHalf, min_=1, max_=4)
 toolbox.register("mutate", rops.xmut, expr=toolbox.expr_mut, unipb=0.5, shrpb=0.05, inspb=0.25, pset=pset, creator=creator)
