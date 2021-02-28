@@ -29,11 +29,13 @@ are created on 10 different disturbance scenarios contained in the dataset GP_cr
 
 import sys
 import os
-models_path = os.path.join(os.path.dirname( __file__ ), '..', 'FESTIP_Models')
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '..', 'GP_Functions')
+models_path = os.path.join(os.path.dirname( __file__ ), '../..', 'FESTIP_Models')
+igpfun_path = os.path.join(os.path.dirname( __file__ ), '../../../../IGP')
+sgpfun_path = os.path.join(os.path.dirname( __file__ ), '../../../../SGP')
 data_path = os.path.join(os.path.dirname( __file__ ), '..', 'Datasets')
 sys.path.append(models_path)
-sys.path.append(gpfun_path)
+sys.path.append(igpfun_path)
+sys.path.append(sgpfun_path)
 sys.path.append(data_path)
 from scipy.integrate import solve_ivp
 import numpy as np
@@ -45,19 +47,21 @@ import multiprocessing
 from scipy.interpolate import PchipInterpolator
 from time import time, strftime
 import os
+import scipy.io as sio
 import _pickle as cPickle
 import matplotlib
-import GP_Functions as funs
+import SGP_Functions as sgpfuns
+import IGP_Functions as igpfuns
 import models_FESTIP as mods
-import scipy.io as sio
 import GP_PrimitiveSet as gpprim
+import Recombination_operators as rops
 
 
 matplotlib.rcParams.update({'font.size': 22})
 timestr = strftime("%Y%m%d-%H%M%S")
 
 ############################ GP PARAMETERS ######################################
-flag_save = True # set to true to save data
+flag_save = False # set to true to save data
 nEph = 2  # number of ephemeral constants used
 limit_height = 25  # Max height (complexity) of the controller law
 limit_size = 50  # Max size (complexity) of the controller law
@@ -78,7 +82,7 @@ obj = mods.Spaceplane()
 GP_points = np.load(data_path + "/GP_creationSet.npy")
 ntot = len(GP_points)
 
-ref_traj = sio.loadmat(models_path + "/reference_trajectory.mat")
+ref_traj = sio.loadmat(models_path + "/reference_trajectory_ascent.mat")
 tref = ref_traj['timetot'][0]
 total_time_simulation = tref[-1]
 tfin = tref[-1]
@@ -156,7 +160,7 @@ def main(height_start, v_wind, deltaH):
 
     best_pop = toolbox.population(n=size_pop_tot)
 
-    hof = funs.HallOfFame(10)
+    hof = igpfuns.HallOfFame(10)
 
     print("INITIAL POP SIZE: %d" % size_pop_tot)
     print("GEN SIZE: %d" % size_gen)
@@ -167,14 +171,18 @@ def main(height_start, v_wind, deltaH):
     mstats = tools.MultiStatistics(fitness=stats_fit)
 
     mstats.register("avg", np.mean, axis=0)
-    mstats.register("min", funs.Min)
+    mstats.register("min", igpfuns.Min)
 
     ####################################   EVOLUTIONARY ALGORITHM   -  EXECUTION   ###################################
 
-    pop, log = funs.eaMuPlusLambdaTolSimple(best_pop, toolbox, Mu, Lambda, size_gen, fit_tol, cxpb, mutpb, height_start,
-                                            v_wind, deltaH, cl, cd, cm, spimpv, presv, change_time, pset, obj, vfun,
-                                            chifun, gammafun, hfun, alfafun, deltafun, tfin, x_ini_h,
-                                            stats=mstats, halloffame=hof, verbose=True)
+    pop, log, data, all_lengths = sgpfuns.eaMuPlusLambdaTolSimple(best_pop, toolbox, Mu, Lambda, size_gen, cxpb, mutpb,
+                                                                  pset, creator, stats=mstats, halloffame=hof, verbose=True,
+                                                                  fit_tol=fit_tol, height_start=height_start,
+                                                                  v_wind=v_wind, deltaH=deltaH, cl=cl, cd=cd, cm=cm,
+                                                                  spimpv=spimpv, presv=presv, change_time=change_time,
+                                                                  obj=obj, vfun=vfun, chifun=chifun, gammafun=gammafun,
+                                                                  hfun=hfun, alfafun=alfafun, deltafun=deltafun,
+                                                                  tfin=tfin, x_ini_h=x_ini_h, mod_hof=True, check=False)
     ####################################################################################################################
 
     pool.close()
@@ -190,11 +198,11 @@ pset.addPrimitive(operator.sub, 2, name="Sub")
 pset.addPrimitive(operator.mul, 2, name='Mul')
 pset.addPrimitive(gpprim.TriAdd, 3)
 pset.addPrimitive(np.tanh, 1, name="Tanh")
-pset.addPrimitive(gpprim.Sqrt, 1)
-pset.addPrimitive(gpprim.Log, 1)
+pset.addPrimitive(gpprim.ModSqrt, 1)
+pset.addPrimitive(gpprim.ModLog, 1)
 pset.addPrimitive(gpprim.ModExp, 1)
-pset.addPrimitive(gpprim.Sin, 1)
-pset.addPrimitive(gpprim.Cos, 1)
+pset.addPrimitive(np.sin, 1)
+pset.addPrimitive(np.cos, 1)
 
 for i in range(nEph):
     pset.addEphemeralConstant("rand{}".format(i), lambda: round(random.uniform(-10, 10), 4))
@@ -206,7 +214,7 @@ pset.renameArguments(ARG3='errH')
 
 ################################################## TOOLBOX #############################################################
 
-creator.create("Fitness", funs.FitnessMulti, weights=(-1.0, -1.0))
+creator.create("Fitness", base.Fitness, weights=(-1.0, -1.0))
 creator.create("Individual", list, fitness=creator.Fitness)
 creator.create("SubIndividual", gp.PrimitiveTree)
 
@@ -220,16 +228,16 @@ toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 toolbox.register("compile", gp.compile, pset=pset)
 toolbox.register("evaluate", mods.evaluate)
 
-toolbox.register("select", funs.xselDoubleTournament, fitness_size=2, parsimony_size=1.6, fitness_first=True)
-toolbox.register("mate", funs.xmateSimple)
+toolbox.register("select", sgpfuns.xselDoubleTournament, fitness_size=2, parsimony_size=1.6, fitness_first=True)
+toolbox.register("mate", rops.xmateSimple)
 toolbox.register("expr_mut", gp.genHalfAndHalf, min_=1, max_=4)
-toolbox.register("mutate", funs.xmutSimple, expr=toolbox.expr_mut, pset=pset)
+toolbox.register("mutate", rops.xmutSimple, expr=toolbox.expr_mut, pset=pset)
 
-toolbox.decorate("mate", funs.staticLimitMod(key=operator.attrgetter("height"), max_value=limit_height))
-toolbox.decorate("mutate", funs.staticLimitMod(key=operator.attrgetter("height"), max_value=limit_height))
+toolbox.decorate("mate", igpfuns.staticLimitMod(key=operator.attrgetter("height"), max_value=limit_height))
+toolbox.decorate("mutate", igpfuns.staticLimitMod(key=operator.attrgetter("height"), max_value=limit_height))
 
-toolbox.decorate("mate", funs.staticLimitMod(key=len, max_value=limit_size))
-toolbox.decorate("mutate", funs.staticLimitMod(key=len, max_value=limit_size))
+toolbox.decorate("mate", igpfuns.staticLimitMod(key=len, max_value=limit_size))
+toolbox.decorate("mutate", igpfuns.staticLimitMod(key=len, max_value=limit_size))
 
 ########################################################################################################################
 

@@ -29,9 +29,9 @@ to use the proposed control approach on another vehicle
 
 import sys
 import os
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '..', 'GP_Functions')
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../Ascent', 'GP_Functions')
 sys.path.append(gpfun_path)
-nnfun_path = os.path.join(os.path.dirname( __file__ ), '..', '2_Optimization_GPLaw')
+nnfun_path = os.path.join(os.path.dirname( __file__ ), '../Ascent', '2_Optimization_GPLaw')
 sys.path.append(nnfun_path)
 import numpy as np
 import random
@@ -432,13 +432,32 @@ def vass(states, omega):
     return vela, chiass
 
 
-def evaluate(individual, cl, cd, cm, spimpv, presv, height_start, v_wind, deltaH, change_time, pset, obj, vfun, chifun,
-             gammafun, hfun, alfafun, deltafun, tfin, x_ini_h):
+def evaluate(individual, pset, **k):
+
     """This function is used to evalute the fitness function of the GP individuals"""
     penalty = []
-
     falfa = gp.compile(individual[0], pset=pset)
     fdelta = gp.compile(individual[1], pset=pset)
+
+    cl = k['kwargs']['cl']
+    cd = k['kwargs']['cd']
+    cm = k['kwargs']['cm']
+    spimpv = k['kwargs']['spimpv']
+    presv = k['kwargs']['presv']
+    height_start = k['kwargs']['height_start']
+    v_wind = k['kwargs']['v_wind']
+    deltaH = k['kwargs']['deltaH']
+    change_time = k['kwargs']['change_time']
+    obj = k['kwargs']['obj']
+    vfun = k['kwargs']['vfun']
+    chifun = k['kwargs']['chifun']
+    gammafun = k['kwargs']['gammafun']
+    hfun = k['kwargs']['hfun']
+    alfafun = k['kwargs']['alfafun']
+    deltafun = k['kwargs']['deltafun']
+    tfin = k['kwargs']['tfin']
+    x_ini_h = k['kwargs']['x_ini_h']
+
 
     def sys(t, x, cl, cd, cm, spimpv, presv, height_start, v_wind, deltaH):
         v = x[0]
@@ -819,21 +838,21 @@ def RK4(t_start, t_end, fun, Npoints, init_cond, t_max_int, args):
     int_start= time.time()
     t = np.linspace(t_start, t_end, Npoints)
     dt = t[1] - t[0]
-    x = np.zeros((Npoints, 7))
+    x = np.zeros((Npoints, len(init_cond)))
     x[0,:] = init_cond
-    for i in range(Npoints-1):
+    for i in range(Npoints - 1):
         int_end = time.time()
-        if int_end-int_start > t_max_int:
+        if int_end - int_start > t_max_int:
             t_stop = t[i]
             stop_index = i
             break
-        k1 = dt * fun(t[i], x[i,:], *args)
-        k2 = dt * fun(t[i] + dt / 2, x[i,:] + k1 / 2, *args)
-        k3 = dt * fun(t[i] + dt / 2, x[i,:] + k2 / 2, *args)
-        k4 = dt * fun(t[i + 1], x[i,:] + k3, *args)
-        x[i+1,:] = x[i,:] + (1 / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
-        t_stop = t[i+1]
-        stop_index = i+2
+        k1 = fun(t[i], x[i, :], *args)
+        k2 = fun(t[i] + dt / 2, x[i, :] + 0.5 * dt * k1, *args)
+        k3 = fun(t[i] + dt / 2, x[i, :] + 0.5 * dt * k2, *args)
+        k4 = fun(t[i] + dt, x[i, :] + dt * k3, *args)
+        x[i + 1, :] = x[i, :] + (1 / 6) * dt * (k1 + 2 * k2 + 2 * k3 + k4)
+        t_stop = t[i + 1]
+        stop_index = i + 2
     return x, t_stop, stop_index
 
 

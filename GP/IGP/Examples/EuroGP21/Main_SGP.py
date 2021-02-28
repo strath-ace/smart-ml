@@ -18,7 +18,7 @@ from deap import gp, base, creator, tools
 import multiprocessing
 from time import time, strftime
 import matplotlib
-import SGP_Functions as funs
+from SGP import SGP_Functions as funs
 import GP_PrimitiveSet as gpprim
 import Recombination_operators as rops
 import Benchmarks

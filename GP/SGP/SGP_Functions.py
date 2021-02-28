@@ -1,14 +1,22 @@
 import sys
 import os
 import numpy as np
+from copy import copy
 from deap import tools
 from deap.algorithms import varOr
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '..', '..')
+from operator import attrgetter
+import random
+from functools import partial
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../IGP/Examples', '..')
 sys.path.append(gpfun_path)
 import IGP_Functions as funs
+try:
+    import models_FESTIP as mods
+except ModuleNotFoundError:
+    mods = None
 
-
-def eaMuPlusLambdaTolSimple(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, creator, stats=None, halloffame=None, verbose=__debug__):
+def eaMuPlusLambdaTolSimple(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset, creator, stats=None,
+                            halloffame=None, verbose=__debug__, **kwargs):
     """Modification of eaMuPlusLambda function from DEAP library, used by SGP. Modifications include:
         - use of tolerance value for the first fitness function below which the evolution is stopped
         - implemented tolerance stopping criteria
@@ -58,6 +66,10 @@ def eaMuPlusLambdaTolSimple(population, toolbox, mu, lambda_, ngen, cxpb, mutpb,
         variation.
         """
 
+    if 'v_wind' in kwargs:
+        init_wind = copy(kwargs['v_wind'])
+        init_delta = copy(kwargs['deltaH'])
+
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
@@ -68,11 +80,13 @@ def eaMuPlusLambdaTolSimple(population, toolbox, mu, lambda_, ngen, cxpb, mutpb,
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
-    fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+    fitnesses = toolbox.map(partial(toolbox.evaluate, pset=pset, kwargs=kwargs), invalid_ind)
     for ind, fit in zip(invalid_ind, fitnesses):
         ind.fitness.values = fit
 
-    if halloffame is not None:
+    if halloffame is not None and kwargs['mod_hof'] is True:
+        halloffame.update(population, for_feasible=True)
+    if halloffame is not None and kwargs['mod_hof'] is False:
         halloffame.update(population)
 
     record = stats.compile(population) if stats is not None else {}
@@ -80,22 +94,43 @@ def eaMuPlusLambdaTolSimple(population, toolbox, mu, lambda_, ngen, cxpb, mutpb,
     if verbose:
         print(logbook.stream)
 
+    min_fit = np.array(logbook.chapters["fitness"].select("min"))
+
+    if kwargs['fit_tol'] is None and kwargs['check'] is True:
+        success = mods.check_success(toolbox, halloffame, **kwargs)
+    elif kwargs['fit_tol'] is not None and kwargs['check'] is False:
+        if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
+            success = True
+        else:
+            success = False
+    elif kwargs['fit_tol'] is None and kwargs['check'] is False:
+        success = False
+
     # Begin the generational process
     gen = 1
-    while gen < ngen + 1:
+    while gen < ngen + 1 and not success:
         # Vary the population
 
         offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
 
+        if 'v_wind' in kwargs:
+            eps = 0.1
+            v_wind = random.uniform(init_wind * (1 - eps), init_wind * (1 + eps))
+            deltaT = random.uniform(init_delta * (1 - eps), init_delta * (1 + eps))
+            print("New point: Height start {} km, Wind speed {} m/s, Range gust {} km".format(kwargs['height_start'] / 1000, v_wind,
+                                                                                              deltaT / 1000))
+
         # Evaluate the individuals with an invalid fitness
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        fitnesses = toolbox.map(partial(toolbox.evaluate, pset=pset, kwargs=kwargs), invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
         # Update the hall of fame with the generated individuals
-        if halloffame is not None:
+        if halloffame is not None and kwargs['mod_hof'] is True:
+            halloffame.update(offspring, for_feasible=True)
+        if halloffame is not None and kwargs['mod_hof'] is False:
             halloffame.update(offspring)
 
         # Select the next generation population
@@ -112,3 +147,46 @@ def eaMuPlusLambdaTolSimple(population, toolbox, mu, lambda_, ngen, cxpb, mutpb,
         gen += 1
 
     return population, logbook, data, all_lengths
+
+
+def xselDoubleTournament(individuals, k, fitness_size, parsimony_size, fitness_first):
+    """
+    From [2]
+    """
+    assert (1 <= parsimony_size <= 2), "Parsimony tournament size has to be in the range [1, 2]."
+
+    def _sizeTournament(individuals, k, select):
+        chosen = []
+        for i in range(k):
+            # Select two individuals from the population
+            # The first individual has to be the shortest
+            prob = parsimony_size / 2.
+            ind1, ind2 = select(individuals, k=2)
+
+            lind1 = sum([len(gpt) for gpt in ind1])
+            lind2 = sum([len(gpt) for gpt in ind2])
+            if lind1 > lind2:
+                ind1, ind2 = ind2, ind1
+            elif lind1 == lind2:
+                # random selection in case of a tie
+                prob = 0.5
+
+            # Since size1 <= size2 then ind1 is selected
+            # with a probability prob
+            chosen.append(ind1 if random.random() < prob else ind2)
+
+        return chosen
+
+    def _fitTournament(individuals, k, select):
+        chosen = []
+        for i in range(k):
+            aspirants = select(individuals, k=fitness_size)
+            chosen.append(max(aspirants, key=attrgetter("fitness")))
+        return chosen
+
+    if fitness_first:
+        tfit = partial(_fitTournament, select=tools.selRandom)
+        return _sizeTournament(individuals, k, tfit)
+    else:
+        tsize = partial(_sizeTournament, select=tools.selRandom)
+        return _fitTournament(individuals, k, tsize)

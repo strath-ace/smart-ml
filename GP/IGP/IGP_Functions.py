@@ -33,16 +33,17 @@ to Real-World Applications, 23-32. 1995
 """
 
 import numpy as np
-from copy import deepcopy
+from copy import deepcopy, copy
 import random
 from functools import partial, wraps
-from deap import tools, gp
-from operator import eq, truediv, mul
-from collections import Sequence
-try:
-    import models_FESTIP as mods
-except ModuleNotFoundError:
-    mods = None
+from deap import tools
+from operator import eq
+import os
+import sys
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../../IntHGPNNC/FESTIP_Models')
+sys.path.append(gpfun_path)
+import models_FESTIP as mods
+
 #######################################################################################################################
 """                                         NEW FUNCTIONS AND CLASSES                                               """
 #######################################################################################################################
@@ -188,7 +189,7 @@ def subset_feasible(population):
     return sub_pop
 
 
-def subset_unfesible(population):
+'''def subset_unfesible(population):
     """
     Author(s): Francesco Marchetti
     email: francesco.marchetti@strath.ac.uk
@@ -199,7 +200,7 @@ def subset_unfesible(population):
         if ind.fitness.values[0] < 10 and ind.fitness.values[1] < 30 and ind.fitness.values[-1] < 10 and \
                 ind.fitness.values[-1] != 0:
             sub_pop.append(ind)
-    return sub_pop
+    return sub_pop'''
 
 
 def subset_diversity(population, creator):
@@ -256,7 +257,8 @@ def subset_diversity(population, creator):
 """                                   MODIFIED FUNCTIONS FROM DEAP LIBRARY                                          """
 #######################################################################################################################
 
-def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb, mutpb, cx_limit, inclusive_mutation, inclusive_reproduction):
+def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb, mutpb, cx_limit, inclusive_mutation,
+             inclusive_reproduction, elite_reproduction):
     """
     Function to perform crossover,mutation or reproduction operations based on varOr function from DEAP library.
     Modified to implement the inclusive crossover, mutation and reproduction
@@ -349,7 +351,13 @@ def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb,
                 offspring.append(ind)
         else:  # Apply reproduction
             if inclusive_reproduction is False:
-                offspring.append(selBest(population))
+                if elite_reproduction is True:
+                    offspring.append(selBest(population))
+                else:
+                    if len_subpop >= 1:
+                        offspring.append(random.choice(sub_pop))
+                    else:
+                        offspring.append(selBest(population))  # reproduce only from the best
             else:
                 if not good_list:
                     good_list = list(good_indexes)
@@ -415,48 +423,6 @@ def staticLimitMod(key, max_value):
 
 
 ######################## MODIFIED SELECTION MECHANISMS ###########################
-'''def xselDoubleTournament(individuals, k, fitness_size, parsimony_size, fitness_first):
-    """
-    From [2]
-    """
-    assert (1 <= parsimony_size <= 2), "Parsimony tournament size has to be in the range [1, 2]."
-
-    def _sizeTournament(individuals, k, select):
-        chosen = []
-        for i in range(k):
-            # Select two individuals from the population
-            # The first individual has to be the shortest
-            prob = parsimony_size / 2.
-            ind1, ind2 = select(individuals, k=2)
-
-            lind1 = sum([len(gpt) for gpt in ind1])
-            lind2 = sum([len(gpt) for gpt in ind2])
-            if lind1 > lind2:
-                ind1, ind2 = ind2, ind1
-            elif lind1 == lind2:
-                # random selection in case of a tie
-                prob = 0.5
-
-            # Since size1 <= size2 then ind1 is selected
-            # with a probability prob
-            chosen.append(ind1 if random.random() < prob else ind2)
-
-        return chosen
-
-    def _fitTournament(individuals, k, select):
-        chosen = []
-        for i in range(k):
-            aspirants = select(individuals, k=fitness_size)
-            chosen.append(max(aspirants, key=attrgetter("fitness")))
-        return chosen
-
-    if fitness_first:
-        tfit = partial(_fitTournament, select=tools.selRandom)
-        return _sizeTournament(individuals, k, tfit)
-    else:
-        tsize = partial(_sizeTournament, select=tools.selRandom)
-        return _fitTournament(individuals, k, tsize)'''
-
 
 def selDoubleTournament(individuals, k, parsimony_size, creator, enough, fitness_first):
     """This is a modification of the xselDoubleTournament function from [2] which itself is a modification of
@@ -846,6 +812,10 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
     variation.
     """
 
+    if 'v_wind' in kwargs:
+        init_wind = copy(kwargs['v_wind'])
+        init_delta = copy(kwargs['deltaH'])
+
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
@@ -871,16 +841,15 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
 
     min_fit = np.array(logbook.chapters["fitness"].select("min"))
 
-    if kwargs['fit_tol'] is None and mods is not None:
+    if kwargs['fit_tol'] is None and kwargs['check'] is True:
         success = mods.check_success(toolbox, halloffame, **kwargs)
-    else:
-        try:
-            if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
-                success = True
-            else:
-                success = False
-        except TypeError:
+    elif kwargs['fit_tol'] is not None and kwargs['check'] is False:
+        if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
+            success = True
+        else:
             success = False
+    elif kwargs['fit_tol'] is None and kwargs['check'] is False:
+        success = False
 
     # Begin the generational process
     gen = 1
@@ -889,7 +858,14 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
 
         sub_div, good_index = subset_diversity(population, creator)
         offspring, len_feas, mutpb, cxpb = varOrMod(population, toolbox, lambda_, sub_div, good_index, cxpb, mutpb, kwargs['cx_limit'],
-                                                    kwargs['inclusive_mutation'], kwargs['inclusive_reproduction'])
+                                                    kwargs['inclusive_mutation'], kwargs['inclusive_reproduction'],
+                                                    kwargs['elite_reproduction'])
+        if 'v_wind' in kwargs:
+            eps = 0.1
+            v_wind = random.uniform(init_wind * (1 - eps), init_wind * (1 + eps))
+            deltaT = random.uniform(init_delta * (1 - eps), init_delta * (1 + eps))
+            print("New point: Height start {} km, Wind speed {} m/s, Range gust {} km".format(kwargs['height_start'] / 1000, v_wind,
+                                                                                              deltaT / 1000))
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(partial(toolbox.evaluate, pset=pset, kwargs=kwargs), invalid_ind)
