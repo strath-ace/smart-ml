@@ -3,9 +3,11 @@
 Algorithms for the intelligent control of launch vehicles using primarly Genetic Programming along with other Machine Learning techiniques.
 
 Please refer to the subfolder for detailed explanation of the algorithms and their usage:
-* **IC_Goddard** contains the algorithm developed for the work presented in reference [1]. It is an implementation of the online use of GP to perform intelligent control applied on the Goddard ascent vehicle.
-* **IC_NN_FESTIP** contains the algorithm developed for the work presented in reference [2]. It is an implementation of the online use of a NN to optimize online a control law produced using GP tp perform intelligent control. It is applied on the FESTIP ascent vehicle.
+* **IGP** (Inclusive Genetic Programming) contains the new GP heuristic which was first formally formulated in [2] and properly tested in [3].
+* **IntGPC** (Intelligent Genetic Programming Control) contains the algorithm developed for the work presented in reference [1]. It is an implementation of the online use of GP to perform intelligent control applied on the Goddard ascent vehicle.
+* **IntHGPNNC** (Intelligent Hybrid Genetic Programming Neural Network Control) contains the algorithm developed for the work presented in reference [2]. It is an implementation of the online use of a NN to optimize online a control law produced using GP tp perform intelligent control. It is applied on the ascent trajectory of the FESTIP vehicle.
 
 ## References
-1. F. Marchetti, E. Minisci, A. Riccardi. Towards Intelligent Control via Genetic Programming. The 2020 IEEE International Joint Conference on Neural Network Proceedings. 2020
-2. F. Marchetti, E. Minisci. A Hybrid Neural Network-Genetic Programming Intelligent Control Approach. Bioinspired Optimization Methods and Their Applications. BIOMA 2020.
+1. Marchetti, F., Minisci, E., Riccardi, A. . Towards Intelligent Control via Genetic Programming. 2020 International Joint Conference on Neural Networks (IJCNN) (2020)
+2. Marchetti, F., Minisci, E. . A Hybrid Neural Network-Genetic Programming Intelligent Control Approach. In: B. Filipič, E. Minisci, M. Vasile (eds.) Bioinspired Optimization Methods and Their Applications. BIOMA 2020. Springer, Cham, Brussels (2020) 
+3. Marchetti F., Minisci E. . Inclusive Genetic Programming. In: Genetic Programming. EuroGP 2021. Lecture Notes in Computer Science. Springer, Cham (2021)
