@@ -3,9 +3,9 @@
 The Inclusive Genetic Programming is a novel heuristic which was formulated in [1]. 
 The evolutionary process at the core of the IGP is based on a modified version of the evolutionary strategy $\mu+\lambda$ [2]. The differences from 
 the standard version consist in: 
-* 1) the creation of the niches at the beginning of the evolutionary process and every time after a new offspring is generated; 
-* 2) the use of the Inclusive Reproduction; 
-* 3) the use of the Inclusive Tournament.
+1. the creation of the niches at the beginning of the evolutionary process and every time after a new offspring is generated; 
+2. the use of the Inclusive Reproduction; 
+3. the use of the Inclusive Tournament.
 
 The niches are created in an evenly distributed manner (linearly divided) between the maximum and minimum length (number of nodes) of the individuals in the 
 population, then the individuals are assigned to the respective niche according to their length. The same number of niches is kept during the evolutionary process, 
@@ -26,6 +26,14 @@ avoid selecting always from the same niches.
 The Inclusive Tournament consists in performing a Double Tournament [3] on each niche. For the Inclusive Tournament the niches are selected in a sequential 
 manner and the double tournament on each niche is performed at most $t$ times where $t$ is the number of individuals inside the considered niche, to avoid having 
 clones in the final population.
+
+## Code description
+
+* **GP_PrimitiveSet.py** contains the primitive functions used by the IGP and the SGP
+* **IGP_Functions.py** contains the new functions and classes that defines the IGP plus some functions and classes taken directly form the DEAP library and modified to introduced partcular features
+* **Recombination_operators.py** contains the modified versions of the mutation and crossover operators used by the IGP and SGP. The modifications includes:
+  * use of different mutation operators according to the assigned probability of being selected
+  * implemented crossover and mutation between individuals composed by multiple trees
 
 
 
