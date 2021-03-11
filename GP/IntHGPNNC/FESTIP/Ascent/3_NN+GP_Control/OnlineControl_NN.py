@@ -43,16 +43,16 @@ import scipy.io as sio
 from sklearn import preprocessing
 import sys
 import os
-models_path = os.path.join(os.path.dirname( __file__ ), '..', 'FESTIP_Models')
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '..', 'GP_Functions')
+models_path = os.path.join(os.path.dirname( __file__ ), '../../FESTIP_Models')
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../../../../IGP')
 data_path = os.path.join(os.path.dirname( __file__ ), '..', 'Datasets')
-gplaw_path = os.path.join(os.path.dirname( __file__ ), '..', '1_OfflineCreationGPLaw/ResultsBIOMA2020')
+gplaw_path = os.path.join(os.path.dirname( __file__ ), '..', '1_OfflineCreationGPLaw')
 sys.path.append(models_path)
 sys.path.append(gpfun_path)
 sys.path.append(data_path)
 sys.path.append(gplaw_path)
 import GP_PrimitiveSet as gpprim
-import GP_Functions as funs
+import IGP_Functions as funs
 import models_FESTIP as mods
 
 ########################### Tunable parameters  #################################à
@@ -72,11 +72,11 @@ pset.addPrimitive(operator.sub, 2, name="Sub")
 pset.addPrimitive(operator.mul, 2, name='Mul')
 pset.addPrimitive(gpprim.TriAdd, 3)
 pset.addPrimitive(np.tanh, 1, name="Tanh")
-pset.addPrimitive(gpprim.Sqrt, 1)
-pset.addPrimitive(gpprim.Log, 1)
+pset.addPrimitive(gpprim.ModSqrt, 1, name='Sqrt')
+pset.addPrimitive(gpprim.ModLog, 1, name='Log')
 pset.addPrimitive(gpprim.ModExp, 1)
-pset.addPrimitive(gpprim.Sin, 1)
-pset.addPrimitive(gpprim.Cos, 1)
+pset.addPrimitive(np.sin, 1, name='Sin')
+pset.addPrimitive(np.cos, 1, name='Cos')
 for i in range(2):
     pset.addEphemeralConstant("rand{}".format(i), lambda: round(random.uniform(-10, 10), 4))
 pset.addTerminal('w')
@@ -84,7 +84,7 @@ pset.renameArguments(ARG0='errV')
 pset.renameArguments(ARG1='errChi')
 pset.renameArguments(ARG2='errGamma')
 pset.renameArguments(ARG3='errH')
-creator.create("Fitness", funs.FitnessMulti, weights=(-1.0, -1.0))
+creator.create("Fitness", base.Fitness, weights=(-1.0, -1.0))
 creator.create("Individual", list, fitness=creator.Fitness)
 creator.create("SubIndividual", gp.PrimitiveTree)
 toolbox = base.Toolbox()
@@ -104,7 +104,53 @@ with (open(gplaw_path + '/IGP_hof_{}.pkl'.format(hofnum), "rb")) as openfile:
 
 bestFuns = deepcopy(objects[0][-1])
 
-ref_traj = sio.loadmat(models_path + "/reference_trajectory.mat")
+'''indexes = []
+values = []
+
+pset.terminals[pset.ret][-1].value = 1  # set initial value of weights to 1
+weight = deepcopy(pset.terminals[pset.ret][-1])  # store weight terminal
+mul_fun = deepcopy(pset.primitives[pset.ret][2])  # store mul function primitive
+
+
+###################  This part add the multiplication between the gp function inputs and weights #######################
+
+for i in range(len(bestFuns)):
+    j = 0
+    l = len(bestFuns[i])
+    stop = False
+    while not stop:
+        if type(bestFuns[i][j]) == gp.Terminal and bestFuns[i][j].name[0] == "A":
+            bestFuns[i].insert(j, mul_fun)
+            bestFuns[i].insert(j+1, weight)
+            j = j + 3
+            l += 2
+        else:
+            j += 1
+        if j == l:
+            stop = True
+
+########################################################################################################################
+
+for i in range(len(bestFuns)):
+    for j in range(len(bestFuns[i])):
+        if type(bestFuns[i][j]) == gp.Terminal and bestFuns[i][j].name == "w":
+            values.append(bestFuns[i][j].value)
+for i in range(len(bestFuns)):
+    for j in range(len(bestFuns[i])):
+        if type(bestFuns[i][j]) == gp.rand0 or type(bestFuns[i][j]) == gp.rand1:
+            values.append(bestFuns[i][j].value)
+
+values = np.array(values)
+
+print("Modified control law of first control parameter: ")
+print(bestFuns[0])
+print("\n")
+print("Modified control law of second control parameter: ")
+print(bestFuns[1])
+print("\n")
+print("Parameters to be optimized: ", values)'''
+
+ref_traj = sio.loadmat(models_path + "/reference_trajectory_ascent.mat")
 tref = ref_traj['timetot'][0]
 total_time_simulation = tref[-1]
 tfin = tref[-1]

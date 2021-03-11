@@ -31,8 +31,8 @@ from copy import deepcopy
 import numpy as np
 import sys
 import os
-models_path = os.path.join(os.path.dirname( __file__ ), '..', 'FESTIP_Models')
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '..', 'GP_Functions')
+models_path = os.path.join(os.path.dirname( __file__ ), '../..', 'FESTIP_Models')
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../../../../IGP')
 data_path = os.path.join(os.path.dirname( __file__ ), '..', 'Datasets')
 sys.path.append(models_path)
 sys.path.append(gpfun_path)

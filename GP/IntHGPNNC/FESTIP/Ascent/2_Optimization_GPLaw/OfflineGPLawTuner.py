@@ -55,17 +55,17 @@ import scipy.io as sio
 import TreeTunerUtils as utils
 import sys
 import os
-models_path = os.path.join(os.path.dirname( __file__ ), '..', 'FESTIP_Models')
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '..', 'GP_Functions')
+models_path = os.path.join(os.path.dirname( __file__ ), '../../FESTIP_Models')
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../../../../IGP')
 data_path = os.path.join(os.path.dirname( __file__ ), '..', 'Datasets')
-gplaw_path = os.path.join(os.path.dirname( __file__ ), '..', '1_OfflineCreationGPLaw/ResultsBIOMA2020')
+gplaw_path = os.path.join(os.path.dirname( __file__ ), '..', '1_OfflineCreationGPLaw')
 sys.path.append(models_path)
 sys.path.append(gpfun_path)
 sys.path.append(data_path)
 sys.path.append(gplaw_path)
 import models_FESTIP as mods
 import GP_PrimitiveSet as gpprim
-import GP_Functions as funs
+import IGP_Functions as funs
 import time
 from tqdm import *
 from scipy.integrate import solve_ivp
@@ -83,11 +83,11 @@ pset.addPrimitive(operator.sub, 2, name="Sub")
 pset.addPrimitive(operator.mul, 2, name='Mul')
 pset.addPrimitive(gpprim.TriAdd, 3)
 pset.addPrimitive(np.tanh, 1, name="Tanh")
-pset.addPrimitive(gpprim.Sqrt, 1)
-pset.addPrimitive(gpprim.Log, 1)
+pset.addPrimitive(gpprim.ModSqrt, 1, name='Sqrt')
+pset.addPrimitive(gpprim.ModLog, 1, name='Log')
 pset.addPrimitive(gpprim.ModExp, 1)
-pset.addPrimitive(gpprim.Sin, 1)
-pset.addPrimitive(gpprim.Cos, 1)
+pset.addPrimitive(np.sin, 1, name='Sin')
+pset.addPrimitive(np.cos, 1, name='Cos')
 
 for i in range(nEph):
     pset.addEphemeralConstant("rand{}".format(i), lambda: round(random.uniform(-10, 10), 6))
@@ -100,7 +100,7 @@ pset.renameArguments(ARG3='errH')
 
 ################################################## TOOLBOX #############################################################
 
-creator.create("Fitness", funs.FitnessMulti, weights=(-1.0, -1.0))
+creator.create("Fitness", base.Fitness, weights=(-1.0, -1.0))
 creator.create("Individual", list, fitness=creator.Fitness)
 creator.create("SubIndividual", gp.PrimitiveTree)
 toolbox = base.Toolbox()
@@ -181,7 +181,7 @@ obj = mods.Spaceplane()
 training_points = np.load(data_path + "/training_points.npy")
 n_samples = len(training_points)
 
-ref_traj = sio.loadmat(models_path + "/reference_trajectory.mat")
+ref_traj = sio.loadmat(models_path + "/reference_trajectory_ascent.mat")
 tref = ref_traj['timetot'][0]
 total_time_simulation = tref[-1]
 tfin = tref[-1]
