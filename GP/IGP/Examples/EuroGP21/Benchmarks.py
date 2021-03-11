@@ -40,7 +40,6 @@ def select_testcase(bench):
         input_test = np.random.uniform(-1, 1, 100)
         output_true = f(input_true)
         output_test = f(input_test)
-        terminals = 1
     elif bench == "korns11":
         f = lambda x, y, z, v, w: 6.87 + 11*np.cos(7.23*x**3)
         input_true1 = np.random.uniform(-50, 10, 5000)

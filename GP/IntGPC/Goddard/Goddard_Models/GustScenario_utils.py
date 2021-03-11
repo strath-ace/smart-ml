@@ -47,7 +47,7 @@ def evaluate(individual, pset, **k):
     obj = k['kwargs']['obj']
     delta_eval = k['kwargs']['delta_eval']
     height_start = k['kwargs']['height_start']
-    delta = k['kwargs']['delta']
+    delta = k['kwargs']['deltaH']
     v_wind = k['kwargs']['v_wind']
 
     def sys(t, x):

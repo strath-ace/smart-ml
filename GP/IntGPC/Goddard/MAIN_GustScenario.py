@@ -179,12 +179,18 @@ def main(size_pop, size_gen, Mu, cxpb, mutpb, x_ini_h, height_start, delta, v_wi
 
     ####################################   EVOLUTIONARY ALGORITHM   -  EXECUTION   ###################################
 
-    pop, log, pop_statistics, ind_lengths = funs.eaMuPlusLambdaTol(best_pop, toolbox, Mu, Lambda, size_gen, cxpb, mutpb, [psetR, psetT], creator,
-                                      stats=mstats, halloffame=hof, verbose=True, fit_tol=fit_tol, Rfun=Rfun,
-                                      Thetafun=Thetafun, Vrfun=Vrfun, Vtfun=Vtfun, Trfun=Trfun, Ttfun=Ttfun,
-                                      change_time=change_time, tfin=tfin, x_ini_h=x_ini_h, obj=obj,
-                                      delta_eval=delta_eval, height_start=height_start, delta=delta, v_wind=v_wind,
-                                      inclusive_mutation=inclusive_mutation, inclusive_reproduction=inclusive_reproduction, cx_limit=cx_limit)
+    pop, log, pop_statistics, ind_lengths = funs.eaMuPlusLambdaTol(best_pop, toolbox, Mu, Lambda, size_gen, cxpb, mutpb,
+                                                                   [psetR, psetT], creator, stats=mstats,
+                                                                   halloffame=hof, verbose=True, fit_tol=fit_tol,
+                                                                   Rfun=Rfun, Thetafun=Thetafun, Vrfun=Vrfun,
+                                                                   Vtfun=Vtfun, Trfun=Trfun, Ttfun=Ttfun,
+                                                                   change_time=change_time, tfin=tfin, x_ini_h=x_ini_h,
+                                                                   obj=obj, delta_eval=delta_eval,
+                                                                   height_start=height_start, deltaH=deltaH,
+                                                                   v_wind=v_wind, inclusive_mutation=inclusive_mutation,
+                                                                   inclusive_reproduction=inclusive_reproduction,
+                                                                   elite_reproduction=False,
+                                                                   cx_limit=cx_limit, check=False)
     ####################################################################################################################
 
     pool.close()
@@ -277,7 +283,7 @@ if __name__ == '__main__':
     while nt < ntot:
         ####  RANDOM VARIATIONS DEFINITION ####
         height_start = obj.Re + random.uniform(1000, 40000)
-        delta = random.uniform(10000, 15000)
+        deltaH = random.uniform(10000, 15000)
         v_wind = random.uniform(0, 80)
 
         if learning:
@@ -287,7 +293,10 @@ if __name__ == '__main__':
 
         mutpb = copy(mutpb_start)
         cxpb = copy(cxpb_start)
-        print(" ---------------Iter={}, V wind={}, Gust Height Start={}, Size Gust Zone={} -----------------".format(nt, round(v_wind,2), round(height_start-obj.Re,2), round(delta,2)))
+        print(" ---------------Iter={}, V wind={}, Gust Height Start={}, Size Gust Zone={} -----------------".format(nt,
+                                                                                                                     round(v_wind,2),
+                                                                                                                     round(height_start-obj.Re,2),
+                                                                                                                     round(deltaH,2)))
         x_ini = [obj.Re, 0.0, 0.0, 0.0, obj.M0]
         idx = 0
         def find_height(t, x):
@@ -299,20 +308,23 @@ if __name__ == '__main__':
         change_time = init.t[-1]
         ######## second integration to find out initial conditions after evaluation, assuming delta_eval as evaluation time #########
         x_ini_1 = [init.y[0, :][-1], init.y[1, :][-1], init.y[2, :][-1], init.y[3, :][-1], init.y[4, :][-1]]
-        init2 = solve_ivp(partial(utils.sys_ifnoC, height_start=height_start, delta=delta, v_wind=v_wind, Trfun=Trfun, Ttfun=Ttfun, obj=obj), [change_time, change_time+delta_eval], x_ini_1)
+        init2 = solve_ivp(partial(utils.sys_ifnoC, height_start=height_start, delta=deltaH, v_wind=v_wind, Trfun=Trfun,
+                                  Ttfun=Ttfun, obj=obj), [change_time, change_time+delta_eval], x_ini_1)
 
         x_ini_h = [init2.y[0, :][-1], init2.y[1, :][-1], init2.y[2, :][-1], init2.y[3, :][-1], init2.y[4, :][-1]]  #  initial conditions to be used by GP, since it has to find a law that starts after the evaluation time, ideally
 
         start = time()
-        pop, log, hof = main(size_pop, size_gen, Mu, cxpb, mutpb, x_ini_h, height_start, delta, v_wind)
+        pop, log, hof = main(size_pop, size_gen, Mu, cxpb, mutpb, x_ini_h, height_start, deltaH, v_wind)
         end = time()
         if learning:
             old_hof.update(hof[-5:], for_feasible=True)
         t_offdesign = end - start
         print("Time elapsed: {}".format(t_offdesign))
-        stats.append([v_wind, height_start-obj.Re, delta, delta_eval, t_offdesign])
+        stats.append([v_wind, height_start-obj.Re, deltaH, delta_eval, t_offdesign])
         if flag_save:
-            output = open("Results_Gust_2C_{}_{}it_Res_{}_{}/hof_Offline{}.pkl".format(str_learning, str(ntot), os.path.basename(__file__), timestr, nt), "wb")  # save of hall of fame after first GP run
+            output = open("Results_Gust_2C_{}_{}it_Res_{}_{}/hof_Offline{}.pkl".format(str_learning, str(ntot),
+                                                                                       os.path.basename(__file__),
+                                                                                       timestr, nt), "wb")  # save of hall of fame after first GP run
             cPickle.dump(hof, output, -1)
             output.close()
         print(hof[-1][0])
@@ -358,7 +370,8 @@ if __name__ == '__main__':
         #########for plot and to find initial condition for propagation#########
         x_ini = [obj.Re, 0, 0, 0, obj.M0]
         tev = np.linspace(0, tfin, 1000)
-        teval_val_p = solve_ivp(partial(utils.sys_ifnoC, height_start=height_start, delta=delta, v_wind=v_wind, Trfun=Trfun, Ttfun=Ttfun, obj=obj), [0, tfin], x_ini, t_eval=tev) # only used for plot
+        teval_val_p = solve_ivp(partial(utils.sys_ifnoC, height_start=height_start, delta=deltaH, v_wind=v_wind,
+                                        Trfun=Trfun, Ttfun=Ttfun, obj=obj), [0, tfin], x_ini, t_eval=tev) # only used for plot
 
         r_eval_p = teval_val_p.y[0, :]
         th_eval_p = teval_val_p.y[1, :]
@@ -374,7 +387,7 @@ if __name__ == '__main__':
 
         tev = np.linspace(change_time + delta_eval, tfin, 1000)
         solgp = solve_ivp(partial(utils.sys2GP, expr1=hof[-1][0], expr2=hof[-1][1], v_wind=v_wind, height_start=height_start,
-                                  delta=delta, toolbox=toolbox, obj=obj, Rfun=Rfun, Thetafun=Thetafun, Vrfun=Vrfun,
+                                  delta=deltaH, toolbox=toolbox, obj=obj, Rfun=Rfun, Thetafun=Thetafun, Vrfun=Vrfun,
                                   Vtfun=Vtfun, Trfun=Trfun, Ttfun=Ttfun), [change_time + delta_eval, tfin], x_ini_h, t_eval=tev)  # used for next integration
 
         rout = solgp.y[0, :]
@@ -386,10 +399,12 @@ if __name__ == '__main__':
 
         if t_offdesign < delta_eval:
             success_time += 1
-        if (Rref[-1]-obj.Re) * 0.99 < (rout[-1]-obj.Re) < (Rref[-1]-obj.Re) * 1.01 and Thetaref[-1] * 0.99 < thetaout[-1] < Thetaref[-1] * 1.01:  # tolerance of 1%
+        if (Rref[-1]-obj.Re) * 0.99 < (rout[-1]-obj.Re) < (Rref[-1]-obj.Re) * 1.01 and \
+                Thetaref[-1] * 0.99 < thetaout[-1] < Thetaref[-1] * 1.01:  # tolerance of 1%
             success_range += 1
             print("Success range")
-        if t_offdesign < delta_eval and (Rref[-1]-obj.Re) * 0.99 < (rout[-1]-obj.Re) < (Rref[-1]-obj.Re) * 1.01 and Thetaref[-1] * 0.99 < thetaout[-1] < Thetaref[-1] * 1.01:
+        if t_offdesign < delta_eval and (Rref[-1]-obj.Re) * 0.99 < (rout[-1]-obj.Re) < (Rref[-1]-obj.Re) * 1.01 and \
+                Thetaref[-1] * 0.99 < thetaout[-1] < Thetaref[-1] * 1.01:
             success_range_time += 1
         r_diff.append(abs(Rfun(tfin) - rout[-1]))
         theta_diff.append(abs(Thetafun(tfin) - thetaout[-1]))
@@ -407,37 +422,52 @@ if __name__ == '__main__':
             plt.figure(2)
             plt.xlabel("time [s]")
             plt.ylabel("Altitude [km]")
-            plt.plot(t_eval_p, (r_eval_p - obj.Re) / 1e3, color='C0', linewidth=2)
-            plt.plot(ttgp, (rout - obj.Re) / 1e3, color='C2', linewidth=2, label="V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2), round(height_start-obj.Re,2), round(height_start+delta-obj.Re)))
+            plt.title("V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2),
+                                                                                  round(height_start-obj.Re,2),
+                                                                                  round(height_start+deltaH-obj.Re)))
+            plt.plot(t_eval_p, (r_eval_p - obj.Re) / 1e3, color='C0', linewidth=2, label='Without GP control')
+            plt.plot(ttgp, (rout - obj.Re) / 1e3, color='C2', linewidth=2, label="With GP Control")
             plt.axhline((height_start-obj.Re)/1e3, color='k')
-            plt.axhline((height_start + delta - obj.Re)/1e3, color='k')
+            plt.axhline((height_start + deltaH - obj.Re)/1e3, color='k')
             plt.legend(loc='best')
 
             plt.figure(3)
-            plt.plot(t_eval_p, vt_eval_p, color='C0', linewidth=2)
-            plt.plot(ttgp, vtout, color='C2', linewidth=2, label="V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2), round(height_start-obj.Re,2), round(height_start+delta-obj.Re)))
+            plt.title("V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2),
+                                                                             round(height_start - obj.Re, 2),
+                                                                             round(height_start + deltaH - obj.Re)))
+            plt.plot(t_eval_p, vt_eval_p, color='C0', linewidth=2, label='Without GP Control')
+            plt.plot(ttgp, vtout, color='C2', linewidth=2, label="With GP Control")
             plt.xlabel("time [s]")
             plt.ylabel("Tangential Velocity [m/s]")
             plt.legend(loc='best')
 
             plt.figure(4)
+            plt.title("V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2),
+                                                                             round(height_start - obj.Re, 2),
+                                                                             round(height_start + deltaH - obj.Re)))
             plt.axhline(obj.M0 - obj.Mp, 0, ttgp[-1], color='r')
-            plt.plot(t_eval_p, m_eval_p, color='C0', linewidth=2)
-            plt.plot(ttgp, mout, color='C2', linewidth=2, label="V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2), round(height_start-obj.Re,2), round(height_start+delta-obj.Re)))
+            plt.plot(t_eval_p, m_eval_p, color='C0', linewidth=2, label='Without GP Control')
+            plt.plot(ttgp, mout, color='C2', linewidth=2, label="With GP Control")
             plt.xlabel("time [s]")
             plt.ylabel("Mass [kg]")
             plt.legend(loc='best')
 
             plt.figure(5)
-            plt.plot(t_eval_p, vr_eval_p, color='C0', linewidth=2)
-            plt.plot(ttgp, vrout, color='C2', linewidth=2, label="V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2), round(height_start-obj.Re,2), round(height_start+delta-obj.Re)))
+            plt.title("V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2),
+                                                                             round(height_start - obj.Re, 2),
+                                                                             round(height_start + deltaH - obj.Re)))
+            plt.plot(t_eval_p, vr_eval_p, color='C0', linewidth=2, label="Without GP Control")
+            plt.plot(ttgp, vrout, color='C2', linewidth=2, label="With GP Control")
             plt.xlabel("time [s]")
             plt.ylabel("Radial Velocity [m/s]")
             plt.legend(loc='best')
 
             plt.figure(6)
-            plt.plot(t_eval_p, np.rad2deg(th_eval_p), color='C0', linewidth=2)
-            plt.plot(ttgp, np.rad2deg(thetaout), color='C2', linewidth=2, label="V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2), round(height_start-obj.Re,2), round(height_start+delta-obj.Re)))
+            plt.title("V wind={} m/s, Start gust={} m, End gust={} m".format(round(v_wind, 2),
+                                                                             round(height_start - obj.Re, 2),
+                                                                             round(height_start + deltaH - obj.Re)))
+            plt.plot(t_eval_p, np.rad2deg(th_eval_p), color='C0', linewidth=2, label="Without GP Control")
+            plt.plot(ttgp, np.rad2deg(thetaout), color='C2', linewidth=2, label="With GP Control")
             plt.xlabel("time [s]")
             plt.ylabel("Angle [deg]")
             plt.legend(loc='best')

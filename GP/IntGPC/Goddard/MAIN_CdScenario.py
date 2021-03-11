@@ -179,12 +179,18 @@ def main(size_pop, size_gen, Mu, cxpb, mutpb):
 
     ####################################   EVOLUTIONARY ALGORITHM   -  EXECUTION   ###################################
 
-    pop, log, pop_statistics, ind_lengths = funs.eaMuPlusLambdaTol(best_pop, toolbox, Mu, Lambda, size_gen, cxpb, mutpb, [psetR, psetT], creator,
-                                      stats=mstats, halloffame=hof, verbose=True, fit_tol=fit_tol,
-                                      Rfun=Rfun, Thetafun=Thetafun, Vrfun=Vrfun, Vtfun=Vtfun, Trfun=Trfun, Ttfun=Ttfun,
-                                      change_time=change_time, tfin=tfin, x_ini_real=x_ini_real, obj=obj,
-                                      delta_eval=delta_eval, Cd_new=Cd_new, inclusive_mutation=inclusive_mutation,
-                                                                   inclusive_reproduction=inclusive_reproduction, cx_limit=cx_limit)
+    pop, log, pop_statistics, ind_lengths = funs.eaMuPlusLambdaTol(best_pop, toolbox, Mu, Lambda, size_gen, cxpb, mutpb,
+                                                                   [psetR, psetT], creator, stats=mstats,
+                                                                   halloffame=hof, verbose=True, fit_tol=fit_tol,
+                                                                   Rfun=Rfun, Thetafun=Thetafun, Vrfun=Vrfun,
+                                                                   Vtfun=Vtfun, Trfun=Trfun, Ttfun=Ttfun,
+                                                                   change_time=change_time, tfin=tfin,
+                                                                   x_ini_real=x_ini_real, obj=obj,
+                                                                   delta_eval=delta_eval, Cd_new=Cd_new,
+                                                                   inclusive_mutation=inclusive_mutation,
+                                                                   inclusive_reproduction=inclusive_reproduction,
+                                                                   elite_reproduction=False,
+                                                                   cx_limit=cx_limit, check=False)
     ####################################################################################################################
 
     pool.close()

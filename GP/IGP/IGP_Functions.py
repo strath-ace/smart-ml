@@ -40,7 +40,7 @@ from deap import tools
 from operator import eq
 import os
 import sys
-gpfun_path = os.path.join(os.path.dirname( __file__ ), '../../IntHGPNNC/FESTIP_Models')
+gpfun_path = os.path.join(os.path.dirname( __file__ ), '../IntHGPNNC/FESTIP/FESTIP_Models')
 sys.path.append(gpfun_path)
 import models_FESTIP as mods
 
@@ -57,6 +57,16 @@ def InclusiveTournament(mu, organized_pop, good_indexes, selected_individuals, p
     diversity. Double Tournament is used so to avoid bloat. An exploited measure is used to point out when a category is
     completely exploited. For example, if in a category are present only 4 individuals, the tournament will be
     performed at maximum 4 times in that category. This to avoid a spreading of clones of the same individuals.
+
+    Parameters:
+        mu : int
+            Number of individuals to select
+        organized_pop : dict
+            contains the population divided in categories
+        good_indexes : list
+            indexes of filled categories
+        greed_prevention : bool
+            True to avoid selecting too many feasbile individuals. Applicable only to constrained problems
     """
 
     chosen = []
@@ -94,6 +104,129 @@ def InclusiveTournament(mu, organized_pop, good_indexes, selected_individuals, p
     if enough is True:
         print("Greed prevention")
     return chosen
+
+
+def InclusiveVarOr(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb, mutpb, cx_limit, inclusive_mutation,
+             inclusive_reproduction, elite_reproduction):
+    """
+    Author(s): Francesco Marchetti
+    email: francesco.marchetti@strath.ac.uk
+
+    Function to perform crossover,mutation or reproduction operations based on varOr function from DEAP library.
+    Modified to implement the inclusive crossover, mutation and reproduction
+
+    Parameters:
+        population : list
+            A list of individuals to vary.
+        toolbox : class, deap.base.Toolbox
+            contains the evolution operators.
+        lambda_ : int
+            The number of children to produce
+        sub_div : dict
+            categories in which the population is divided
+        good_indexes_original : int
+            array contating the indexes of the filled categories
+        cxpb : float
+            The probability of mating two individuals.
+        mutpb : float
+            The probability of mutating an individual.
+        cx_limit : float
+            maximum value for crossover when dynamicall changing
+        inclusive_mutation: bool
+            True to use inclusive mutation
+        inclusive_reproduction: bool
+            True to use inclusive 1:1 reproduction
+        elite_reproduction: bool
+            True to pass best performing individual to offspring when 1:1 reproduction is selected
+    """
+    assert (cxpb + mutpb) <= 1.0, (
+        "The sum of the crossover and mutation probabilities must be smaller "
+        "or equal to 1.0.")
+
+    offspring = []
+    sub_pop = subset_feasible(population)
+
+    len_subpop = len(sub_pop)
+
+    if sub_pop == []:
+        print("Exploring for feasible individuals. Mutpb: {}, Cxpb:{}".format(mutpb, cxpb))
+    else:
+        if cxpb < cx_limit:
+            mutpb = mutpb - 0.01
+            cxpb = cxpb + 0.01
+        print("\n")
+        print("{}/{} ({}%) FEASIBLE INDIVIDUALS".format(len_subpop, len(population),
+                                                        round(len(sub_pop) / len(population) * 100, 2)))
+        print("Mutpb: {}, Cxpb:{}".format(mutpb, cxpb))
+
+    good_indexes = list(good_indexes_original)
+    good_list = list(good_indexes)
+    while len(offspring) < lambda_:
+        op_choice = random.random()
+        if op_choice < cxpb:  # Apply crossover
+            cat = np.zeros((2))  ### selection of 2 different categories for crossover
+            for i in range(2):
+                if not good_list:
+                    good_list = list(good_indexes)
+                used = random.choice(good_list)
+                cat[i] = used
+                good_list.remove(used)
+            ind1, ind2 = map(toolbox.clone, [selBest(sub_div["cat{}".format(int(cat[0]))]),
+                                             random.choice(sub_div["cat{}".format(int(cat[1]))])])
+            tries = 0
+            while sum(ind1.fitness.values) == sum(ind2.fitness.values) and tries < 10:
+                cat = np.zeros((2))  ### selection of 2 different categories for crossover
+                for i in range(2):
+                    if not good_list:
+                        good_list = list(good_indexes)
+                    used = random.choice(good_list)
+                    cat[i] = used
+                    good_list.remove(used)
+                ind1, ind2 = map(toolbox.clone, [selBest(sub_div["cat{}".format(int(cat[0]))]),
+                                                 random.choice(sub_div["cat{}".format(int(cat[1]))])])
+                tries += 1
+            ind1, ind2 = toolbox.mate(ind1, ind2)
+            del ind1.fitness.values
+            offspring.append(ind1)
+            if len(offspring) < lambda_:
+                del ind2.fitness.values
+                offspring.append(ind2)
+        elif op_choice < cxpb + mutpb:  # Apply mutation
+            if inclusive_mutation is False:
+                ind = toolbox.clone(selBest(population))  # maybe better to use a sort of roulette
+                ind, = toolbox.mutate(ind)
+                del ind.fitness.values
+                offspring.append(ind)
+            else:
+                if not good_list:
+                    good_list = list(good_indexes)
+                used = random.choice(good_list)
+                cat = used
+                good_list.remove(used)
+                ind = toolbox.clone(random.choice(sub_div["cat{}".format(int(cat))]))
+                ind, = toolbox.mutate(ind)
+                del ind.fitness.values
+                offspring.append(ind)
+        else:  # Apply reproduction
+            if inclusive_reproduction is False:
+                if elite_reproduction is True:
+                    offspring.append(selBest(population))
+                else:
+                    if len_subpop >= 1:
+                        offspring.append(random.choice(sub_pop))
+                    else:
+                        offspring.append(selBest(population))  # reproduce only from the best
+            else:
+                if not good_list:
+                    good_list = list(good_indexes)
+                used = random.choice(good_list)
+                cat = used
+                good_list.remove(used)
+                if elite_reproduction is True:
+                    offspring.append(selBest(sub_div["cat{}".format(int(cat))]))
+                else:
+                    offspring.append(random.choice(sub_div["cat{}".format(int(cat))]))
+    return offspring, len_subpop, mutpb, cxpb
 
 
 class POP(object):
@@ -189,20 +322,6 @@ def subset_feasible(population):
     return sub_pop
 
 
-'''def subset_unfesible(population):
-    """
-    Author(s): Francesco Marchetti
-    email: francesco.marchetti@strath.ac.uk
-
-    Function used to create a subset of unfeasible individuals from the input population"""
-    sub_pop = []
-    for ind in population:
-        if ind.fitness.values[0] < 10 and ind.fitness.values[1] < 30 and ind.fitness.values[-1] < 10 and \
-                ind.fitness.values[-1] != 0:
-            sub_pop.append(ind)
-    return sub_pop'''
-
-
 def subset_diversity(population, creator):
     """
     Author(s): Francesco Marchetti
@@ -253,120 +372,31 @@ def subset_diversity(population, creator):
         useful_ind = np.delete(useful_ind, invalid_ind, 0)
     return categories, np.asarray(useful_ind, dtype=int)
 
+
+def Min(pop):
+    """
+    Author(s): Francesco Marchetti
+    email: francesco.marchetti@strath.ac.uk
+
+    The old Min function from the DEAP library was returning incorrect data in case of multiobjective fitness function.
+    The stats weren't about one individual but it was printing the minimum value found for each objective separately,
+    also if they didn't belong to the same individual.
+    """
+    min = pop[0]
+    w = np.array([-1.0, -1.0])
+    for ind in pop:
+        if ind[-1] == 0:
+            if min[-1] == 0 and sum(ind[0:2] * w) > sum(min[0:2] * w):
+                min = ind
+            elif min[-1] != 0:
+                min = ind
+        elif ind[-1] < min[-1]:
+            min = ind
+    return min
+
 #######################################################################################################################
 """                                   MODIFIED FUNCTIONS FROM DEAP LIBRARY                                          """
 #######################################################################################################################
-
-def varOrMod(population, toolbox, lambda_, sub_div, good_indexes_original, cxpb, mutpb, cx_limit, inclusive_mutation,
-             inclusive_reproduction, elite_reproduction):
-    """
-    Function to perform crossover,mutation or reproduction operations based on varOr function from DEAP library.
-    Modified to implement the inclusive crossover, mutation and reproduction
-
-    Parameters:
-        population : list
-            A list of individuals to vary.
-        toolbox : class, deap.base.Toolbox
-            contains the evolution operators.
-        lambda_ : int
-            The number of children to produce
-        sub_div : dict
-            categories in which the population is divided
-        good_indexes_original : int
-            array contating the indexes of the filled categories
-        cxpb : float
-            The probability of mating two individuals.
-        mutpb : float
-            The probability of mutating an individual.
-        limit_size : int
-            size limit used to accept or not the mutation performed on an individual
-    """
-    assert (cxpb + mutpb) <= 1.0, (
-        "The sum of the crossover and mutation probabilities must be smaller "
-        "or equal to 1.0.")
-
-    offspring = []
-    sub_pop = subset_feasible(population)
-
-    len_subpop = len(sub_pop)
-
-    if sub_pop == []:
-        print("Exploring for feasible individuals. Mutpb: {}, Cxpb:{}".format(mutpb, cxpb))
-    else:
-        if cxpb < cx_limit:
-            mutpb = mutpb - 0.01
-            cxpb = cxpb + 0.01
-        print("\n")
-        print("{}/{} ({}%) FEASIBLE INDIVIDUALS".format(len_subpop, len(population),
-                                                        round(len(sub_pop) / len(population) * 100, 2)))
-        print("Mutpb: {}, Cxpb:{}".format(mutpb, cxpb))
-
-    good_indexes = list(good_indexes_original)
-    good_list = list(good_indexes)
-    while len(offspring) < lambda_:
-        op_choice = random.random()
-        if op_choice < cxpb:  # Apply crossover
-            cat = np.zeros((2))  ### selection of 2 different categories for crossover
-            for i in range(2):
-                if not good_list:
-                    good_list = list(good_indexes)
-                used = random.choice(good_list)
-                cat[i] = used
-                good_list.remove(used)
-            ind1, ind2 = map(toolbox.clone, [selBest(sub_div["cat{}".format(int(cat[0]))]),
-                                             random.choice(sub_div["cat{}".format(int(cat[1]))])])
-            tries = 0
-            while sum(ind1.fitness.values) == sum(ind2.fitness.values) and tries < 10:
-                cat = np.zeros((2))  ### selection of 2 different categories for crossover
-                for i in range(2):
-                    if not good_list:
-                        good_list = list(good_indexes)
-                    used = random.choice(good_list)
-                    cat[i] = used
-                    good_list.remove(used)
-                ind1, ind2 = map(toolbox.clone, [selBest(sub_div["cat{}".format(int(cat[0]))]),
-                                                 random.choice(sub_div["cat{}".format(int(cat[1]))])])
-                tries += 1
-            ind1, ind2 = toolbox.mate(ind1, ind2)
-            del ind1.fitness.values
-            offspring.append(ind1)
-            if len(offspring) < lambda_:
-                del ind2.fitness.values
-                offspring.append(ind2)
-        elif op_choice < cxpb + mutpb:  # Apply mutation
-            if inclusive_mutation is False:
-                ind = toolbox.clone(selBest(population))  # maybe better to use a sort of roulette
-                ind, = toolbox.mutate(ind)
-                del ind.fitness.values
-                offspring.append(ind)
-            else:
-                if not good_list:
-                    good_list = list(good_indexes)
-                used = random.choice(good_list)
-                cat = used
-                good_list.remove(used)
-                ind = toolbox.clone(random.choice(sub_div["cat{}".format(int(cat))]))
-                ind, = toolbox.mutate(ind)
-                del ind.fitness.values
-                offspring.append(ind)
-        else:  # Apply reproduction
-            if inclusive_reproduction is False:
-                if elite_reproduction is True:
-                    offspring.append(selBest(population))
-                else:
-                    if len_subpop >= 1:
-                        offspring.append(random.choice(sub_pop))
-                    else:
-                        offspring.append(selBest(population))  # reproduce only from the best
-            else:
-                if not good_list:
-                    good_list = list(good_indexes)
-                used = random.choice(good_list)
-                cat = used
-                good_list.remove(used)
-                offspring.append(selBest(sub_div["cat{}".format(int(cat))]))
-    return offspring, len_subpop, mutpb, cxpb
-
 
 ############## MODIFIED BLOAT CONTROL #########################################
 def staticLimitMod(key, max_value):
@@ -521,32 +551,29 @@ def selDoubleTournament(individuals, k, parsimony_size, creator, enough, fitness
 
 def selBest(individuals):
     """
-    This is a modification of the selBest function implemented in the DEAP library in order to deal with individual
-    composed by multiple trees and with the 2 fitness functions used in this work fitness functions
 
-    Original description:
-    Select the *k* best individuals among the input *individuals*. The list returned contains references to the
-    input *individuals*.
-    :param individuals: A list of individuals to select from.
-    :param k: The number of individuals to select.
-    :param fit_attr: The attribute of individuals to use as selection criterion
-    :returns: A list containing the k best individuals.
+    Author(s): Francesco Marchetti
+    email: francesco.marchetti@strath.ac.uk
+
+    This is a modification of the selBest function implemented in the DEAP library in order to deal with a constrained
+    problem. The last fitness function represent the constraints violation.
+
     """
     best = individuals[0]
     choice = random.random()
-    for ind in individuals:                                                    # Modified part
-        if ind.fitness.values[-1] == 0 and best.fitness.values[-1] == 0:       #
-            if ind.fitness.wvalues[0] > best.fitness.wvalues[0]:               #
-                best = ind                                                     #
-        elif ind.fitness.values[-1] == 0 and best.fitness.values[-1] != 0:     #
-            best = ind                                                         #
-        elif ind.fitness.values[-1] != 0 and best.fitness.values[-1] != 0:     #
-            if choice > 0.9:                                                   #
-                if ind.fitness.wvalues[-1] > best.fitness.wvalues[-1]:         #
-                    best = ind                                                 #
-            else:                                                              #
-                if sum(ind.fitness.wvalues) > sum(best.fitness.wvalues):       #
-                    best = ind                                                 # Modified part
+    for ind in individuals:
+        if ind.fitness.values[-1] == 0 and best.fitness.values[-1] == 0:
+            if ind.fitness.wvalues[0] > best.fitness.wvalues[0]:
+                best = ind
+        elif ind.fitness.values[-1] == 0 and best.fitness.values[-1] != 0:
+            best = ind
+        elif ind.fitness.values[-1] != 0 and best.fitness.values[-1] != 0:
+            if choice > 0.9:
+                if ind.fitness.wvalues[-1] > best.fitness.wvalues[-1]:
+                    best = ind
+            else:
+                if sum(ind.fitness.wvalues) > sum(best.fitness.wvalues):
+                    best = ind
     return best
 
 
@@ -764,10 +791,10 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
                       stats=None, halloffame=None, verbose=__debug__, **kwargs):
     """
     Modification of eaMuPlusLambda function from DEAP library, used by IGP. Modifications include:
-        - use of tolerance value for the first fitness function below which the evolution is stopped
-        - implemented two different stopping criteria: a tolerance and the reaching of a successful trajectory for
-          the FESTIP reentry problem
+        - implemented two different stopping criteria, other than reaching maximum geneartions: a tolerance and the
+        reaching of a successful trajectory for the FESTIP reentry problem
         - use of custom POP class to keep track of the evolution of the population
+        - change of environmental uncertainties for the FESTIP ascent problem
 
     Original Description:
     This is the :math:`(\mu + \lambda)` evolutionary algorithm.
@@ -812,17 +839,17 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
     variation.
     """
 
-    if 'v_wind' in kwargs:
-        init_wind = copy(kwargs['v_wind'])
-        init_delta = copy(kwargs['deltaH'])
+    if 'v_wind' in kwargs:                       # Modified part
+        init_wind = copy(kwargs['v_wind'])       #
+        init_delta = copy(kwargs['deltaH'])      # Modified part
 
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
-    data = np.array(['Min length', 'Max length', 'Entropy', 'Distribution'])
-    all_lengths = []
-    pop = POP(population, creator)
-    data, all_lengths = pop.save_stats(data, all_lengths)
+    data = np.array(['Min length', 'Max length', 'Entropy', 'Distribution'])    # Modified part
+    all_lengths = []                                                            #
+    pop = POP(population, creator)                                              #
+    data, all_lengths = pop.save_stats(data, all_lengths)                       # Modified part
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
@@ -839,17 +866,17 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
     if verbose:
         print(logbook.stream)
 
-    min_fit = np.array(logbook.chapters["fitness"].select("min"))
-
-    if kwargs['fit_tol'] is None and kwargs['check'] is True:
-        success = mods.check_success(toolbox, halloffame, **kwargs)
-    elif kwargs['fit_tol'] is not None and kwargs['check'] is False:
-        if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
-            success = True
-        else:
-            success = False
-    elif kwargs['fit_tol'] is None and kwargs['check'] is False:
-        success = False
+    min_fit = np.array(logbook.chapters["fitness"].select("min"))        # Modified part
+                                                                         #
+    if kwargs['fit_tol'] is None and kwargs['check'] is True:            #
+        success = mods.check_success(toolbox, halloffame, **kwargs)      #
+    elif kwargs['fit_tol'] is not None and kwargs['check'] is False:     #
+        if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:  #
+            success = True                                               #
+        else:                                                            #
+            success = False                                              #
+    elif kwargs['fit_tol'] is None and kwargs['check'] is False:         #
+        success = False                                                  # Modified part
 
     # Begin the generational process
     gen = 1
@@ -857,27 +884,29 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
         # Vary the population
 
         sub_div, good_index = subset_diversity(population, creator)
-        offspring, len_feas, mutpb, cxpb = varOrMod(population, toolbox, lambda_, sub_div, good_index, cxpb, mutpb, kwargs['cx_limit'],
-                                                    kwargs['inclusive_mutation'], kwargs['inclusive_reproduction'],
-                                                    kwargs['elite_reproduction'])
-        if 'v_wind' in kwargs:
-            eps = 0.1
-            v_wind = random.uniform(init_wind * (1 - eps), init_wind * (1 + eps))
-            deltaT = random.uniform(init_delta * (1 - eps), init_delta * (1 + eps))
-            print("New point: Height start {} km, Wind speed {} m/s, Range gust {} km".format(kwargs['height_start'] / 1000, v_wind,
-                                                                                              deltaT / 1000))
+        offspring, len_feas, mutpb, cxpb = InclusiveVarOr(population, toolbox, lambda_, sub_div, good_index, cxpb, mutpb,
+                                                          kwargs['cx_limit'], kwargs['inclusive_mutation'],
+                                                          kwargs['inclusive_reproduction'], kwargs['elite_reproduction'])
+        if 'v_wind' in kwargs:                                                                                                        # Modified part
+            eps = 0.1                                                                                                                 #
+            v_wind = random.uniform(init_wind * (1 - eps), init_wind * (1 + eps))                                                     #
+            deltaT = random.uniform(init_delta * (1 - eps), init_delta * (1 + eps))                                                   #
+            print("New point: Height start {} km, Wind speed {} m/s, Range gust {} km".format(kwargs['height_start'] / 1000, v_wind,  #
+                                                                                              deltaT / 1000))                         # Modified part
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(partial(toolbox.evaluate, pset=pset, kwargs=kwargs), invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
-        # Update the hall of fame with the generated individuals
-        if halloffame is not None:
-            halloffame.update(offspring, for_feasible=True)
+
         # Select the next generation population
         organized_pop, good_indexes = subset_diversity(population + offspring, creator)
         population[:] = toolbox.select(mu, organized_pop, good_indexes)
+
+        # Update the hall of fame with the generated individuals, back before selection if it doesn't work
+        if halloffame is not None:
+            halloffame.update(population, for_feasible=True)
 
         pop = POP(population, creator)
         data, all_lengths = pop.save_stats(data, all_lengths)
@@ -888,42 +917,23 @@ def eaMuPlusLambdaTol(population, toolbox, mu, lambda_, ngen, cxpb, mutpb, pset,
         if verbose:
             print(logbook.stream)
 
-        min_fit = np.array(logbook.chapters["fitness"].select("min"))
-        if kwargs['fit_tol'] is None and mods is not None:
-            success = mods.check_success(toolbox, halloffame, **kwargs)
-        else:
-            try:
-                if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0:
-                    success = True
-                else:
-                    success = False
-            except TypeError:
-                success = False
+        min_fit = np.array(logbook.chapters["fitness"].select("min"))           # Modified part
+        if kwargs['fit_tol'] is None and mods is not None:                      #
+            success = mods.check_success(toolbox, halloffame, **kwargs)         #
+        else:                                                                   #
+            try:                                                                #
+                if min_fit[-1][0] < kwargs['fit_tol'] and min_fit[-1][-1] == 0: #
+                    success = True                                              #
+                else:                                                           #
+                    success = False                                             #
+            except TypeError:                                                   #
+                success = False                                                 # Modified part
 
         gen += 1
 
     return population, logbook, data, all_lengths
 
 
-############################ MODIFIED STATISTICS FUNCTIONS  ########################################
-
-def Min(pop):
-    """
-    The old Min function from the DEAP library was returning incorrect data in case of multiobjective fitness function.
-    The stats weren't about one individual but it was printing the minimum value found for each objective separately,
-    also if they didn't belong to the same individual.
-    """
-    min = pop[0]
-    w = np.array([-1.0, -1.0])
-    for ind in pop:
-        if ind[-1] == 0:
-            if min[-1] == 0 and sum(ind[0:2] * w) > sum(min[0:2] * w):
-                min = ind
-            elif min[-1] != 0:
-                min = ind
-        elif ind[-1] < min[-1]:
-            min = ind
-    return min
 
 
 

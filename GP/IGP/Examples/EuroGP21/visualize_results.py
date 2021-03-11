@@ -1,9 +1,41 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
+# ------ Copyright (C) 2021 University of Strathclyde and Author ------
+# ---------------- Author: Francesco Marchetti ------------------------
+# ----------- e-mail: francesco.marchetti@strath.ac.uk ----------------
+
+# Alternatively, the contents of this file may be used under the terms
+# of the GNU General Public License Version 3.0, as described below:
+
+# This file is free software: you may copy, redistribute and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3.0 of the License, or (at your
+# option) any later version.
+
+# This file is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+# Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see http://www.gnu.org/licenses/.
+
+'''
+
+Script to visualize obtained results in a fashion similar to the paper
+
+'''
+
+
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.io import loadmat
 from deap import creator, gp, base
 from copy import copy
 import matplotlib
+import os
+
 
 matplotlib.rcParams.update({'font.size': 20})
 
@@ -13,8 +45,10 @@ creator.create("SubIndividual", gp.PrimitiveTree)
 normalgp_on = True
 save = True
 ntot = 100  # number of different iterations
+Ngen = 300  #  number of generations in gp algorithms
 
-benches = ['koza1', 'korns11', 'S1', 'S2', 'UB', 'ENC', 'ENH', 'CCS', 'ASN']
+
+benches = ['koza1']
 
 fig, axs = plt.subplots(3, 3, sharex=False, sharey=False)
 fig.set_size_inches(16, 23)
@@ -27,7 +61,7 @@ fig2.set_size_inches(16, 23)
 for k in range(len(benches)):
     bench = benches[k]
 
-    gen_gp = np.linspace(0, 300, 301)
+    gen_gp = np.linspace(0, Ngen, Ngen+1)
 
     res_tot_igp = np.zeros((ntot, len(gen_gp)))
     res_tot_sgp = np.zeros((ntot, len(gen_gp)))
@@ -53,9 +87,9 @@ for k in range(len(benches)):
 
 
     ################# RMSE ########################
-    iters = np.linspace(0, 99, 100)
+    iters = np.linspace(0, ntot-1, ntot)
 
-    data_igp = np.load("Results/IGP_{}/100_IGP_{}_T_RMSE.npy".format(bench, bench))
+    data_igp = np.load("Results/IGP_{}/{}_IGP_{}_T_RMSE.npy".format(bench, ntot, bench))
     rmse_train_igp = np.asarray(data_igp[1:, 1], dtype=float)
     rmse_test_igp = np.asarray(data_igp[1:, 2], dtype=float)
     mean_rmse_train_igp = np.median(rmse_train_igp)
@@ -65,7 +99,7 @@ for k in range(len(benches)):
     teval_igp = np.asarray(data_igp[1:, 0], dtype=float)
     mean_teval_igp = np.median(teval_igp)
     std_teval_igp = np.std(teval_igp)
-    data_sgp = np.load("Results/SGP_{}/100_SGP_{}_T_RMSE.npy".format(bench, bench))
+    data_sgp = np.load("Results/SGP_{}/{}_SGP_{}_T_RMSE.npy".format(bench, ntot, bench))
     rmse_train_sgp = np.asarray(data_sgp[1:, 1], dtype=float)
     rmse_test_sgp = np.asarray(data_sgp[1:, 2], dtype=float)
     mean_rmse_train_sgp = np.median(rmse_train_sgp)
@@ -133,6 +167,10 @@ for k in range(len(benches)):
     plt.ylabel("RMSE")
     #plt.title("Train and Test RMSE on 100 iterations, Benchmark {}".format(bench))
     if save:
+        try:
+            os.mkdir('Results/Plots')
+        except FileExistsError:
+            pass
         plt.savefig('Results/Plots/rmse_{}.pdf'.format(bench), format='pdf')
     matplotlib.rcParams.update({'font.size': 20})
 

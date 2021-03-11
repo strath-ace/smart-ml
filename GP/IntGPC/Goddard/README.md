@@ -3,7 +3,8 @@
 This software has been released under the MPL-2.0 and LGPL-3.0 licenses. It includes source code from DEAP(https://github.com/deap/deap) which is released under the LGPL-3.0 license.
 
 ## Description
-The code contained in this directory is the one used to obtain the results presented in [1] at the WCCI/IJCNN 2020 conference. To reproduce the results run the files "MAIN_CdScenario.py", "MAIN_GustScenario.py" and "MAIN_DensityScenario.py".
+The code contained in this directory is the one used to obtain the results presented in [1] at the WCCI/IJCNN 2020 conference. 
+To reproduce the results run the files "MAIN_CdScenario.py", "MAIN_GustScenario.py" and "MAIN_DensityScenario.py".
 
 The developed code is based on the DEAP library and makes use of Genetic Programming to evaluate online a control law for a 
 Goddard Rocket test case in 3 different failure scenarios.
@@ -17,6 +18,7 @@ The main improvements introduced in comparison to a standard Genetic Programming
 
 This code was developed thanks to concepts and ideas discussed in [2], [3] and [4].
   
+The folder Goddard_Models contains the used reference trajectory, and the necessary models to run the scripts.
 
 # Citation
 If you use any part of the code, please cite [1].
