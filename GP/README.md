@@ -7,9 +7,9 @@ This software has been released under the MPL-2.0 and LGPL-3.0 licenses. It incl
 Algorithms for the intelligent control of launch vehicles using primarly Genetic Programming along with other Machine Learning techiniques.
 
 Please refer to the subfolder for detailed explanation of the algorithms and their usage:
-* **IGP** (Inclusive Genetic Programming) contains the new GP heuristic which was introduced in [2] and the formally formulated in [3].
-* **IntGPC** (Intelligent Genetic Programming Control) contains the algorithm developed for the work presented in reference [1]. It is an implementation of the online use of GP to perform intelligent control applied on the Goddard ascent vehicle.
-* **IntHGPNNC** (Intelligent Hybrid Genetic Programming Neural Network Control) contains the algorithm developed for the work presented in reference [2]. It is an implementation of the online use of a NN to optimize online a control law produced using GP tp perform intelligent control. It is applied on the ascent trajectory of the FESTIP vehicle.
+* **IGP** (Inclusive Genetic Programming) contains the new GP heuristic which was introduced in [2] and more thoroughly analyzed in [3].
+* **IntGPC** (Intelligent Genetic Programming Control) contains the algorithm developed for the work presented in [1]. It is an implementation of the online use of GP to perform intelligent control applied on the Goddard ascent vehicle.
+* **IntHGPNNC** (Intelligent Hybrid Genetic Programming Neural Network Control) contains the algorithm developed for the work presented in [2]. It is an implementation of the online use of a NN to optimize online a control law produced using GP to perform intelligent control. It is applied on the ascent trajectory of the FESTIP vehicle.
 *  **SGP** (Standard Genetic Programming) contains a standard implementation of GP used to compare the results of the IGP.
 
 ## References
