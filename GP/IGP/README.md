@@ -35,8 +35,11 @@ clones in the final population.
   * use of different mutation operators according to the assigned probability of being selected
   * implemented crossover and mutation between individuals composed by multiple trees
 
+## Citation
 
+If you use and part of the cose, please cite [1].
 
+## References
 1. Marchetti F., Minisci E. . Inclusive Genetic Programming. In: Genetic Programming. EuroGP 2021. Lecture Notes in Computer Science. Springer, Cham (2021)
 2. Beyer, H.G., Schwefel, H.P. . Evolution strategies – A comprehensive introduction.Natural Computing1(1), 3–52 (2002). https://doi.org/10.1023/A:1015059928466
 3. Luke, S., Panait, L. . Fighting bloat with nonparametric parsimony pressure. In: Guervos, J.J.M., Adamidis, P., Beyer, H.G., Schwefel, H.P., Fernandez-Villacanas,J.L. (eds.)  Parallel  Problem  Solving  from  Nature  —  PPSN  VII.  pp.  411–421. Springer Berlin Heidelberg, Berlin, Heidelberg (2002)
