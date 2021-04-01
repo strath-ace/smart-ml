@@ -1,7 +1,7 @@
 # Inclusive Genetic Programming
 
 The Inclusive Genetic Programming is a novel heuristic which was formulated in [1]. 
-The evolutionary process at the core of the IGP is based on a modified version of the evolutionary strategy $\mu+\lambda$ [2]. The differences from 
+The evolutionary process at the core of the IGP is based on a modified version of the evolutionary strategy *μ + λ* [2]. The differences from 
 the standard version consist in: 
 1. the creation of the niches at the beginning of the evolutionary process and every time after a new offspring is generated; 
 2. the use of the Inclusive Reproduction; 
@@ -24,7 +24,7 @@ previously described operations (crossover, mutation and 1:1 reproduction) are p
 avoid selecting always from the same niches. 
 
 The Inclusive Tournament consists in performing a Double Tournament [3] on each niche. For the Inclusive Tournament the niches are selected in a sequential 
-manner and the double tournament on each niche is performed at most $t$ times where $t$ is the number of individuals inside the considered niche, to avoid having 
+manner and the double tournament on each niche is performed at most *t* times where *t* is the number of individuals inside the considered niche, to avoid having 
 clones in the final population.
 
 ## Code description
