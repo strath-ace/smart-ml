@@ -1,10 +1,10 @@
 # Genetic Programming
 
-This software has been released under the MPL-2.0 and LGPL-3.0 licenses. It includes source code from DEAP(https://github.com/deap/deap) which is released under the LGPL-3.0 license.
+The inside this folder and subfolders has been released under the MPL-2.0 and LGPL-3.0 licenses. It includes source code from DEAP(https://github.com/deap/deap) which is released under the LGPL-3.0 license.
 
 ## Description
 
-Algorithms for the intelligent control of launch vehicles using primarly Genetic Programming along with other Machine Learning techiniques.
+Algorithms for the intelligent control of launch vehicles using primarily Genetic Programming along with other Machine Learning techniques.
 
 Please refer to the subfolder for detailed explanation of the algorithms and their usage:
 * **IGP** (Inclusive Genetic Programming) contains the new GP heuristic which was introduced in [2] and more thoroughly analyzed in [3].
