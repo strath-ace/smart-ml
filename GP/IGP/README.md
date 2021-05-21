@@ -37,7 +37,7 @@ clones in the final population.
 
 ## Citation
 
-If you use and part of the cose, please cite [1].
+If you use any part of the code, please cite [1].
 
 ## References
 1. Marchetti F., Minisci E. . Inclusive Genetic Programming. In: Genetic Programming. EuroGP 2021. Lecture Notes in Computer Science. Springer, Cham (2021)
