@@ -1,18 +1,9 @@
-# Genetic Programming
+# Genetic Programming (GP)
 
 The software inside this folder and subfolders has been released under the MPL-2.0 and LGPL-3.0 licenses. It includes source code from DEAP(https://github.com/deap/deap) which is released under the LGPL-3.0 license.
 
-## Description
+This folder contains the code related to the GP and GP-based control schemes
 
-Algorithms for the intelligent control of launch vehicles using primarily Genetic Programming along with other Machine Learning techniques.
-
-Please refer to the subfolder for detailed explanation of the algorithms and their usage:
-* **IGP** (Inclusive Genetic Programming) contains the new GP heuristic which was introduced in [2] and more thoroughly analyzed in [3].
-* **IntGPC** (Intelligent Genetic Programming Control) contains the algorithm developed for the work presented in [1]. It is an implementation of the online use of GP to perform intelligent control applied on the Goddard ascent vehicle.
-* **IntHGPNNC** (Intelligent Hybrid Genetic Programming Neural Network Control) contains the algorithm developed for the work presented in [2]. It is an implementation of the online use of a NN to optimize online a control law produced using GP to perform intelligent control. It is applied on the ascent trajectory of the FESTIP vehicle.
-*  **SGP** (Standard Genetic Programming) contains a standard implementation of GP used to compare the results of the IGP.
-
-## References
-1. Marchetti, F., Minisci, E., Riccardi, A. . Towards Intelligent Control via Genetic Programming. 2020 International Joint Conference on Neural Networks (IJCNN) (2020)
-2. Marchetti, F., Minisci, E. . A Hybrid Neural Network-Genetic Programming Intelligent Control Approach. In: B. Filipič, E. Minisci, M. Vasile (eds.) Bioinspired Optimization Methods and Their Applications. BIOMA 2020. Springer, Cham, Brussels (2020) 
-3. Marchetti F., Minisci E. . Inclusive Genetic Programming. In: Genetic Programming. EuroGP 2021. Lecture Notes in Computer Science. Springer, Cham (2021)
+* **GP_Algorithms** contains the code for the Inclusive Genetic Porgramming (IGP) and the Standard Genetic Programming (SGP)
+* **GPBased_ControlSchemes** contains the applications of GP to design a control scheme. Both in an intelligent and non
+intelligent control setting
